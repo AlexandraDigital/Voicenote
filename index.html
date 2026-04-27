@@ -1058,7 +1058,7 @@
       renderNotes();
     }
 
-    // Voice recognition
+    // Voice recognition with smart deduplication
     function startRecognition(onResult, onEnd) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -1069,30 +1069,52 @@
       rec.continuous = true;
       rec.interimResults = true;
       rec.lang = "en-US";
+      rec.maxAlternatives = 1;
 
       let finalTranscript = "";
-      let lastProcessedIndex = -1;
+      let lastProcessedWord = ""; // Track last word to detect repeats
 
       rec.onresult = (e) => {
-        // Build fresh transcript from ALL final results
-        finalTranscript = "";
+        let newFinal = "";
+        
+        // Collect all NEW final results
         for (let i = 0; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
+          const transcript = e.results[i][0].transcript.trim();
+          
           if (e.results[i].isFinal) {
-            finalTranscript += t + " ";
+            // Split into words and filter out those already in finalTranscript
+            const words = transcript.split(/\s+/);
+            const filteredWords = [];
+            
+            for (const word of words) {
+              // Skip if this exact phrase was just added (consecutive duplicate)
+              if (word.toLowerCase() !== lastProcessedWord.toLowerCase()) {
+                filteredWords.push(word);
+                lastProcessedWord = word;
+              }
+            }
+            
+            if (filteredWords.length > 0) {
+              newFinal += (newFinal ? " " : "") + filteredWords.join(" ");
+            }
           }
         }
         
-        // Get interim transcript from the last non-final result
+        // Only append if we have something new
+        if (newFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + newFinal;
+        }
+        
+        // Get interim from the last result
         let interim = "";
         if (e.results.length > 0) {
           const lastResult = e.results[e.results.length - 1];
           if (!lastResult.isFinal) {
-            interim = lastResult[0].transcript;
+            interim = lastResult[0].transcript.trim();
           }
         }
         
-        onResult(finalTranscript.trim(), interim);
+        onResult(finalTranscript, interim);
       };
 
       rec.onend = () => {
@@ -1130,7 +1152,7 @@
         transcript = "";
         startRecognition(
           (final, interim) => {
-            transcript = final + interim;
+            transcript = final + (interim ? " " + interim : "");
             renderNotes();
           },
           (final) => {
