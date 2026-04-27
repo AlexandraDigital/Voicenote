@@ -1071,31 +1071,24 @@
       rec.lang = "en-US";
 
       let finalTranscript = "";
-      let lastProcessedIndex = -1;
+      let ended = false;
 
       rec.onresult = (e) => {
-        // Build fresh transcript from ALL final results
         finalTranscript = "";
         for (let i = 0; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
-            finalTranscript += t + " ";
+            finalTranscript += e.results[i][0].transcript + " ";
           }
         }
-        
-        // Get interim transcript from the last non-final result
         let interim = "";
-        if (e.results.length > 0) {
-          const lastResult = e.results[e.results.length - 1];
-          if (!lastResult.isFinal) {
-            interim = lastResult[0].transcript;
-          }
-        }
-        
+        const last = e.results[e.results.length - 1];
+        if (!last.isFinal) interim = last[0].transcript;
         onResult(finalTranscript.trim(), interim);
       };
 
       rec.onend = () => {
+        if (ended) return;
+        ended = true;
         recognitionRef = null;
         isRecording = false;
         updateMicButtons();
@@ -1103,10 +1096,12 @@
       };
 
       rec.onerror = (e) => {
+        if (ended) return;
+        ended = true;
         recognitionRef = null;
         isRecording = false;
         updateMicButtons();
-        if (e.error !== "aborted") showStatus("⚠️ Voice error: " + e.error);
+        if (e.error !== "aborted") showStatus("Voice error: " + e.error);
         onEnd(finalTranscript.trim());
       };
 
@@ -1194,10 +1189,9 @@
         
         startRecognition(
           (final, interim) => {
-            // Only display everything together
             transcript = final + (interim ? " " + interim : "");
             const voiceDiv = document.getElementById("voiceTranscript");
-            voiceDiv.textContent = "🎙 " + transcript;
+            voiceDiv.textContent = transcript;
             voiceDiv.classList.remove("hidden");
           },
           (final) => {
