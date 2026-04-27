@@ -69,6 +69,10 @@
     let autosaveTimer = null;
     let editAutosaveTimer = null;
 
+    // Mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    let lastProcessedWords = []; // For mobile-specific word deduplication
+
     // Load data from storage
     function loadNotes() {
       try {
@@ -346,6 +350,20 @@
       renderNotes();
     }
 
+    // Strict word deduplication for mobile
+    function deduplicateWords(text) {
+      if (!text || text.length === 0) return text;
+      const words = text.split(/\s+/);
+      const deduped = [];
+      for (let i = 0; i < words.length; i++) {
+        // Skip if word is same as previous
+        if (i === 0 || words[i].toLowerCase() !== words[i - 1].toLowerCase()) {
+          deduped.push(words[i]);
+        }
+      }
+      return deduped.join(" ");
+    }
+
     // Voice recognition
     function startRecognition(onResult, onEnd) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -356,49 +374,54 @@
       const rec = new SpeechRecognition();
       rec.continuous = true;
       rec.interimResults = true;
-      rec.maxAlternatives = 1;
       rec.lang = "en-US";
+      rec.maxAlternatives = 1; // Reduce API variations
 
       let finalTranscript = "";
-      let lastFinalIndex = -1;
-      let lastProcessedWord = "";
       let ended = false;
+      lastProcessedWords = []; // Reset tracking
 
       rec.onresult = (e) => {
-        // PR #1: Track processed results using lastFinalIndex
-        // Only append NEW final results instead of rebuilding
+        // Only process NEW results from e.resultIndex — rebuilding from 0
+        // every call causes duplicates when Chrome re-reports previous results.
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal && i > lastFinalIndex) {
-            lastFinalIndex = i;
-            const words = e.results[i][0].transcript.trim().split(/\s+/);
-            
-            // PR #2: Smart word-level deduplication
-            // Prevent consecutive duplicates from pauses/API overlaps
-            for (const word of words) {
-              // Skip if word is same as last processed word
-              if (word.toLowerCase() === lastProcessedWord.toLowerCase()) continue;
-              // Skip if word already at end of transcript
-              if (finalTranscript.endsWith(word)) continue;
-              
-              if (finalTranscript && !finalTranscript.endsWith(" ")) {
-                finalTranscript += " ";
+          if (e.results[i].isFinal) {
+            let newText = e.results[i][0].transcript.trim();
+            // Mobile: Aggressive word-level deduplication
+            if (isMobile) {
+              newText = deduplicateWords(newText);
+              // Also check against last processed words to avoid re-adding
+              const newWords = newText.split(/\s+/);
+              const finalWords = [];
+              for (const word of newWords) {
+                if (lastProcessedWords.length === 0 || word.toLowerCase() !== lastProcessedWords[lastProcessedWords.length - 1].toLowerCase()) {
+                  finalWords.push(word);
+                  lastProcessedWords.push(word.toLowerCase());
+                }
               }
-              finalTranscript += word;
-              lastProcessedWord = word;
+              newText = finalWords.join(" ");
+              // Keep only last 20 words to avoid memory bloat
+              if (lastProcessedWords.length > 20) {
+                lastProcessedWords = lastProcessedWords.slice(-20);
+              }
+            }
+            if (newText) {
+              finalTranscript += (finalTranscript ? " " : "") + newText;
             }
           }
         }
-        
-        // Current interim text only (no accumulation)
         let interim = "";
         const last = e.results[e.results.length - 1];
-        if (!last.isFinal) interim = last[0].transcript;
+        if (!last.isFinal) {
+          interim = deduplicateWords(last[0].transcript.trim());
+        }
         onResult(finalTranscript.trim(), interim);
       };
 
       rec.onend = () => {
         if (ended) return;
         ended = true;
+        lastProcessedWords = [];
         recognitionRef = null;
         isRecording = false;
         updateMicButtons();
@@ -408,6 +431,7 @@
       rec.onerror = (e) => {
         if (ended) return;
         ended = true;
+        lastProcessedWords = [];
         recognitionRef = null;
         isRecording = false;
         updateMicButtons();
