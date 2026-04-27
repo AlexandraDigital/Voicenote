@@ -356,19 +356,40 @@
       const rec = new SpeechRecognition();
       rec.continuous = true;
       rec.interimResults = true;
+      rec.maxAlternatives = 1;
       rec.lang = "en-US";
 
       let finalTranscript = "";
+      let lastFinalIndex = -1;
+      let lastProcessedWord = "";
       let ended = false;
 
       rec.onresult = (e) => {
-        // Only process NEW results from e.resultIndex — rebuilding from 0
-        // every call causes duplicates when Chrome re-reports previous results.
+        // PR #1: Track processed results using lastFinalIndex
+        // Only append NEW final results instead of rebuilding
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) {
-            finalTranscript += e.results[i][0].transcript;
+          if (e.results[i].isFinal && i > lastFinalIndex) {
+            lastFinalIndex = i;
+            const words = e.results[i][0].transcript.trim().split(/\s+/);
+            
+            // PR #2: Smart word-level deduplication
+            // Prevent consecutive duplicates from pauses/API overlaps
+            for (const word of words) {
+              // Skip if word is same as last processed word
+              if (word.toLowerCase() === lastProcessedWord.toLowerCase()) continue;
+              // Skip if word already at end of transcript
+              if (finalTranscript.endsWith(word)) continue;
+              
+              if (finalTranscript && !finalTranscript.endsWith(" ")) {
+                finalTranscript += " ";
+              }
+              finalTranscript += word;
+              lastProcessedWord = word;
+            }
           }
         }
+        
+        // Current interim text only (no accumulation)
         let interim = "";
         const last = e.results[e.results.length - 1];
         if (!last.isFinal) interim = last[0].transcript;
