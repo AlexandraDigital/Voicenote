@@ -350,6 +350,41 @@
       renderNotes();
     }
 
+    // Extract only new words not already in transcript
+    function getNewWords(fullText, currentTranscript) {
+      if (!fullText) return "";
+      fullText = fullText.trim();
+      currentTranscript = currentTranscript.trim();
+      
+      // If transcript is empty, return full text
+      if (!currentTranscript) return fullText;
+      
+      // Check if fullText starts with current transcript
+      if (fullText.toLowerCase().startsWith(currentTranscript.toLowerCase())) {
+        // Extract only the new part (skip the current transcript)
+        const newPart = fullText.slice(currentTranscript.length).trim();
+        return newPart;
+      }
+      
+      // Fallback: compare words and find first difference
+      const currentWords = currentTranscript.split(/\s+/);
+      const fullWords = fullText.split(/\s+/);
+      
+      for (let i = 0; i < currentWords.length && i < fullWords.length; i++) {
+        if (currentWords[i].toLowerCase() !== fullWords[i].toLowerCase()) {
+          // Found divergence, return from this point onward
+          return fullWords.slice(i).join(" ");
+        }
+      }
+      
+      // If we got here, current is prefix, return remainder
+      if (fullWords.length > currentWords.length) {
+        return fullWords.slice(currentWords.length).join(" ");
+      }
+      
+      return "";
+    }
+
     // Strict word deduplication for mobile
     function deduplicateWords(text) {
       if (!text || text.length === 0) return text;
@@ -386,27 +421,22 @@
         // every call causes duplicates when Chrome re-reports previous results.
         for (let i = e.resultIndex; i < e.results.length; i++) {
           if (e.results[i].isFinal) {
-            let newText = e.results[i][0].transcript.trim();
-            // Mobile: Aggressive word-level deduplication
+            let fullText = e.results[i][0].transcript.trim();
+            
             if (isMobile) {
-              newText = deduplicateWords(newText);
-              // Also check against last processed words to avoid re-adding
-              const newWords = newText.split(/\s+/);
-              const finalWords = [];
-              for (const word of newWords) {
-                if (lastProcessedWords.length === 0 || word.toLowerCase() !== lastProcessedWords[lastProcessedWords.length - 1].toLowerCase()) {
-                  finalWords.push(word);
-                  lastProcessedWords.push(word.toLowerCase());
-                }
+              // Mobile: Extract only truly new words not already in transcript
+              let newText = getNewWords(fullText, finalTranscript);
+              newText = deduplicateWords(newText); // Remove consecutive duplicates
+              
+              if (newText) {
+                finalTranscript += (finalTranscript ? " " : "") + newText;
               }
-              newText = finalWords.join(" ");
-              // Keep only last 20 words to avoid memory bloat
-              if (lastProcessedWords.length > 20) {
-                lastProcessedWords = lastProcessedWords.slice(-20);
+            } else {
+              // Desktop: Just remove consecutive duplicates
+              fullText = deduplicateWords(fullText);
+              if (fullText) {
+                finalTranscript += (finalTranscript ? " " : "") + fullText;
               }
-            }
-            if (newText) {
-              finalTranscript += (finalTranscript ? " " : "") + newText;
             }
           }
         }
