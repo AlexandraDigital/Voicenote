@@ -1071,19 +1071,19 @@
       rec.lang = "en-US";
 
       let finalTranscript = "";
-      let lastProcessedIndex = -1;
+      let lastFinalIndex = -1;
 
       rec.onresult = (e) => {
-        // Build fresh transcript from ALL final results
-        finalTranscript = "";
-        for (let i = 0; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
+        // Only process NEW final results since last time
+        for (let i = lastFinalIndex + 1; i < e.results.length; i++) {
           if (e.results[i].isFinal) {
-            finalTranscript += t + " ";
+            const t = e.results[i][0].transcript;
+            finalTranscript += (finalTranscript ? " " : "") + t;
+            lastFinalIndex = i;
           }
         }
         
-        // Get interim transcript from the last non-final result
+        // Get interim transcript from ONLY the current non-final result
         let interim = "";
         if (e.results.length > 0) {
           const lastResult = e.results[e.results.length - 1];
@@ -1092,7 +1092,7 @@
           }
         }
         
-        onResult(finalTranscript.trim(), interim);
+        onResult(finalTranscript, interim);
       };
 
       rec.onend = () => {
