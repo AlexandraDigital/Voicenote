@@ -146,6 +146,25 @@
     }
 
     // UI Rendering
+    function setupEditInputListeners(noteId) {
+      const titleInput = document.getElementById("editTitleInput");
+      const contentInput = document.getElementById("editContentInput");
+      
+      if (titleInput) {
+        titleInput.addEventListener("input", (e) => {
+          editTitle = e.target.value;
+          autosaveEdit(noteId, editTitle, editContent);
+        });
+      }
+      
+      if (contentInput) {
+        contentInput.addEventListener("input", (e) => {
+          editContent = e.target.value;
+          autosaveEdit(noteId, editTitle, editContent);
+        });
+      }
+    }
+
     function renderNotes() {
       const filtered = notes.filter(n =>
         n.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -230,6 +249,11 @@
           </div>
         `;
       }).join('') + '</div>';
+      
+      // Setup event listeners for edit mode if active
+      if (editingId !== null) {
+        setTimeout(() => setupEditInputListeners(editingId), 0);
+      }
     }
 
     function renderColorPicker() {
