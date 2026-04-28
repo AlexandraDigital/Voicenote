@@ -546,26 +546,32 @@
 
     function parseVoiceCommand(text) {
       // Parse commands like "title My Title", "tag work", "color blue"
-      const titleMatch = text.match(/^title\s+(.+?)(?:\s+tag\s+|$)/i);
-      const tagMatch = text.match(/tag\s+(.+?)(?:\s+color\s+|$)/i);
-      const colorMatch = text.match(/color\s+(\w+)$/i);
-
       let result = { title: "", tag: "", color: "", content: text };
+      let cleaned = text;
 
+      // Extract title (properly handle subsequent commands)
+      const titleMatch = text.match(/^title\s+(.+?)(?=\s+(?:tag|color)\s+|$)/i);
       if (titleMatch) {
         result.title = titleMatch[1].trim();
-        result.content = text.replace(/^title\s+(.+?)(?:\s+|$)/i, "").trim();
+        cleaned = text.replace(/^title\s+[^\s].+?(?=\s+(?:tag|color)\s+|$)/i, "").trim();
       }
 
+      // Extract tag (properly handle color after)
+      const tagMatch = cleaned.match(/tag\s+(.+?)(?=\s+color\s+|$)/i);
       if (tagMatch) {
         result.tag = tagMatch[1].trim();
-        result.content = result.content.replace(/tag\s+(.+?)(?:\s+|$)/i, "").trim();
+        cleaned = cleaned.replace(/tag\s+[^\s].+?(?=\s+color\s+|$)/i, "").trim();
       }
 
+      // Extract color
+      const colorMatch = cleaned.match(/color\s+(\w+)/i);
       if (colorMatch) {
         result.color = colorMatch[1].toLowerCase();
-        result.content = result.content.replace(/\s*color\s+\w+$/i, "").trim();
+        cleaned = cleaned.replace(/\s*color\s+\w+\s*/i, "").trim();
       }
+
+      // Remaining text is content
+      result.content = cleaned || "";
 
       return result;
     }
