@@ -374,6 +374,48 @@
       renderNotes();
     }
 
+    function exportNotes() {
+      const dataStr = JSON.stringify(notes, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0];
+      link.href = url;
+      link.download = `voicenotes-backup-${dateStr}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showStatus("📥 Notes exported!");
+    }
+
+    function importNotes() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target?.result);
+            if (Array.isArray(imported)) {
+              notes = imported;
+              persistNotes();
+              renderNotes();
+              showStatus("📤 Notes imported!");
+            } else {
+              showStatus("❌ Invalid backup file");
+            }
+          } catch (err) {
+            showStatus("❌ Error importing file");
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
     // Extract only new words not already in transcript
     function getNewWords(fullText, currentTranscript) {
       if (!fullText) return "";
@@ -713,45 +755,4 @@
     function escapeHtml(text) {
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
       return String(text).replace(/[&<>"']/g, m => map[m]);
-    }
-
-    // Export notes as JSON
-    function exportNotes() {
-      const dataStr = JSON.stringify(notes, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `voicenotes-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      showStatus('✓ Notes exported');
-    }
-
-    // Import notes from JSON
-    function importNotes() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const imported = JSON.parse(event.target.result);
-            if (!Array.isArray(imported)) throw new Error('Invalid format');
-            notes = imported;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-            renderNotes();
-            showStatus('✓ Notes imported successfully');
-          } catch (err) {
-            showStatus('✗ Failed to import notes');
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
     }
