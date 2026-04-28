@@ -205,6 +205,26 @@
       background: var(--sky-dark);
     }
 
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: transparent;
+      color: var(--sky);
+      border: 1.5px solid var(--slate-lighter);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+      background: var(--sky-lighter);
+      border-color: var(--sky);
+    }
+
     .install-banner {
       background: linear-gradient(135deg, var(--sky), var(--sky-dark));
       color: var(--white);
