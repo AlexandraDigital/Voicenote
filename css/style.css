@@ -617,3 +617,25 @@
     .hidden {
       display: none;
     }
+
+    /* Ensure import/export buttons are visible in app mode */
+    @media (display-mode: standalone) {
+      .btn-icon {
+        display: flex !important;
+      }
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 480px) {
+      .search-input {
+        width: 100px;
+      }
+
+      .btn-icon {
+        display: flex !important;
+      }
+
+      .header-right {
+        gap: 4px;
+      }
+    }
