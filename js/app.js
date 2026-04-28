@@ -592,30 +592,30 @@
       let result = { title: "", tag: "", color: "", content: "" };
       let remaining = text;
 
-      // Extract and remove title
-      const titleMatch = remaining.match(/^title\s+(.+?)(?=\s+(?:tag|color)\s+|$)/i);
+      // Extract title (order-independent: can appear anywhere)
+      const titleMatch = remaining.match(/\btitle\s*:?\s+(.+?)(?=\s+(?:tag|color)\s*:?\s+|\s*$)/i);
       console.log("titleMatch:", titleMatch);
       if (titleMatch) {
         result.title = titleMatch[1].trim();
-        remaining = remaining.substring(titleMatch[0].length).trim();
+        remaining = remaining.replace(titleMatch[0], "").trim();
         console.log("After title removal, remaining:", remaining);
       }
 
-      // Extract and remove tag
-      const tagMatch = remaining.match(/^tag\s+(.+?)(?=\s+color\s+|$)/i);
+      // Extract tag (order-independent: can appear anywhere)
+      const tagMatch = remaining.match(/\btag\s*:?\s+(.+?)(?=\s+color\s*:?\s+|\s*$)/i);
       console.log("tagMatch:", tagMatch);
       if (tagMatch) {
         result.tag = tagMatch[1].trim();
-        remaining = remaining.substring(tagMatch[0].length).trim();
+        remaining = remaining.replace(tagMatch[0], "").trim();
         console.log("After tag removal, remaining:", remaining);
       }
 
-      // Extract and remove color
-      const colorMatch = remaining.match(/^color\s+(\w+)/i);
+      // Extract color (order-independent: can appear anywhere)
+      const colorMatch = remaining.match(/\bcolor\s*:?\s+(\w+)/i);
       console.log("colorMatch:", colorMatch);
       if (colorMatch) {
         result.color = colorMatch[1].toLowerCase();
-        remaining = remaining.substring(colorMatch[0].length).trim();
+        remaining = remaining.replace(colorMatch[0], "").trim();
         console.log("After color removal, remaining:", remaining);
       }
 
