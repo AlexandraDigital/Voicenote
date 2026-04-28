@@ -225,6 +225,81 @@
       border-color: var(--sky);
     }
 
+    .menu-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-menu {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: transparent;
+      color: var(--sky);
+      border: 1.5px solid var(--slate-lighter);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-menu:hover {
+      background: var(--sky-lighter);
+      border-color: var(--sky);
+    }
+
+    .menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      min-width: 140px;
+      z-index: 1000;
+      overflow: hidden;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .menu-dropdown.hidden {
+      display: none;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--slate);
+      border: none;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 13px;
+      transition: all 0.15s;
+      text-align: left;
+    }
+
+    .menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item:hover {
+      background: var(--sky-lighter);
+      color: var(--sky-dark);
+    }
+
+    .menu-item svg {
+      flex-shrink: 0;
+    }
+
     .install-banner {
       background: linear-gradient(135deg, var(--sky), var(--sky-dark));
       color: var(--white);
@@ -635,7 +710,22 @@
         display: flex !important;
       }
 
+      .btn-menu {
+        display: flex !important;
+      }
+
       .header-right {
         gap: 4px;
+      }
+    }
+
+    /* App mode */
+    @media (display-mode: standalone) {
+      .menu-container {
+        display: flex !important;
+      }
+
+      .btn-menu {
+        display: flex !important;
       }
     }

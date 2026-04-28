@@ -724,6 +724,22 @@
       }
     }
 
+    // Menu dropdown toggle
+    const menuBtn = document.getElementById("menuBtn");
+    const menuDropdown = document.getElementById("menuDropdown");
+    
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menuDropdown.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".menu-container")) {
+        menuDropdown.classList.add("hidden");
+      }
+    });
+
     // Event listeners
     document.getElementById("installBtn").addEventListener("click", handleInstall);
     document.getElementById("bannerInstallBtn").addEventListener("click", handleInstall);
