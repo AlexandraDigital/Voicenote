@@ -546,35 +546,36 @@
 
     function parseVoiceCommand(text) {
       // Parse commands like "title My Title", "tag work", "color blue"
-      let result = { title: "", tag: "", color: "", content: text };
-      let cleaned = text;
+      let result = { title: "", tag: "", color: "", content: "" };
+      let remaining = text;
 
-      // Extract title (properly handle subsequent commands)
-      const titleMatch = text.match(/^title\s+(.+?)(?=\s+(?:tag|color)\s+|$)/i);
+      // Extract and remove title
+      const titleMatch = remaining.match(/^title\s+(.+?)(?=\s+(?:tag|color)\s+|$)/i);
       if (titleMatch) {
         result.title = titleMatch[1].trim();
-        cleaned = text.replace(/^title\s+[^\s].+?(?=\s+(?:tag|color)\s+|$)/i, "").trim();
+        remaining = remaining.substring(titleMatch[0].length).trim();
       }
 
-      // Extract tag (properly handle color after)
-      const tagMatch = cleaned.match(/tag\s+(.+?)(?=\s+color\s+|$)/i);
+      // Extract and remove tag
+      const tagMatch = remaining.match(/^tag\s+(.+?)(?=\s+color\s+|$)/i);
       if (tagMatch) {
         result.tag = tagMatch[1].trim();
-        cleaned = cleaned.replace(/tag\s+[^\s].+?(?=\s+color\s+|$)/i, "").trim();
+        remaining = remaining.substring(tagMatch[0].length).trim();
       }
 
-      // Extract color
-      const colorMatch = cleaned.match(/color\s+(\w+)/i);
+      // Extract and remove color
+      const colorMatch = remaining.match(/^color\s+(\w+)/i);
       if (colorMatch) {
         result.color = colorMatch[1].toLowerCase();
-        cleaned = cleaned.replace(/\s*color\s+\w+\s*/i, "").trim();
+        remaining = remaining.substring(colorMatch[0].length).trim();
       }
 
-      // Remaining text is content
-      result.content = cleaned || "";
+      // Whatever's left is the content
+      result.content = remaining;
 
       return result;
     }
+
 
     function handleModalMicClick() {
       if (isRecording) {
