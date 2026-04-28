@@ -466,7 +466,9 @@
         }
         let interim = "";
         const last = e.results[e.results.length - 1];
-        if (!last.isFinal) {
+        // On mobile, don't show interim text while user is still speaking
+        // Only show final text after pause for cleaner UX
+        if (!last.isFinal && !isMobile) {
           interim = deduplicateWords(last[0].transcript.trim());
         }
         onResult(finalTranscript.trim(), interim);
