@@ -25,6 +25,26 @@
       { bg: "#fff1f2", border: "#fecdd3", label: "Rose" },
     ];
 
+    // Tag to color mapping
+    const TAG_COLORS = {
+      work: 2,       // Blue
+      personal: 4,   // Yellow
+      urgent: 5,     // Rose
+      idea: 1,       // Mint
+      todo: 3,       // Lavender
+      home: 0,       // Peach
+      project: 2,    // Blue
+      health: 4,     // Yellow
+      finance: 5,    // Rose
+      learning: 1,   // Mint
+      reminder: 5,   // Rose
+      meeting: 2,    // Blue
+      note: 3,       // Lavender
+      recipe: 0,     // Peach
+      bug: 5,        // Rose
+      feature: 1,    // Mint
+    };
+
     const STORAGE_KEY = "voicenotes_notes";
     const DRAFT_KEY = "voicenotes_draft";
 
@@ -303,15 +323,27 @@
       updateModalContent();
     }
 
+    function getColorFromTag(tag) {
+      const tagLower = tag.trim().toLowerCase();
+      return TAG_COLORS[tagLower] !== undefined ? TAG_COLORS[tagLower] : 2; // Default to Blue
+    }
+
     // Note management
     function saveNewNote() {
       if (!newTitle.trim() && !newContent.trim()) return;
+      
+      // Determine color: use tag's color if tag is provided, otherwise use selected color
+      let colorIdx = newColorIdx;
+      if (newTag.trim()) {
+        colorIdx = getColorFromTag(newTag);
+      }
+      
       const note = {
         id: Date.now(),
         title: newTitle.trim() || "Untitled",
         content: newContent.trim(),
         date: new Date(),
-        colorIdx: newColorIdx,
+        colorIdx: colorIdx,
         tags: newTag.trim() ? [newTag.trim().toLowerCase()] : [],
       };
       notes = [note, ...notes];
@@ -766,6 +798,11 @@
 
     document.getElementById("newTag").addEventListener("input", (e) => {
       newTag = e.target.value;
+      // Auto-update color based on tag
+      if (newTag.trim()) {
+        newColorIdx = getColorFromTag(newTag);
+        updateModalContent();
+      }
       saveDraft();
     });
 
