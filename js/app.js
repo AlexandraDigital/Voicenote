@@ -80,6 +80,7 @@
     let newContent = "";
     let newColorIdx = 2;
     let newTag = "";
+    let explicitColorIdx = null; // Color from voice command (overrides tag color)
     let recordingNote = null;
     let voiceMode = false;
     let installPrompt = null;
@@ -315,6 +316,7 @@
       if (e && e.target !== e.currentTarget) return;
       if (isRecording) stopRecognition();
       showNewNote = false;
+      explicitColorIdx = null;
       document.getElementById("newNoteModal").classList.add("hidden");
     }
 
@@ -328,13 +330,32 @@
       return TAG_COLORS[tagLower] !== undefined ? TAG_COLORS[tagLower] : 2; // Default to Blue
     }
 
+    function getColorFromName(colorName) {
+      if (!colorName) return null;
+      const normalized = colorName.trim().toLowerCase();
+      const colorMap = {
+        peach: 0, orange: 0,
+        mint: 1, green: 1,
+        blue: 2, navy: 2,
+        lavender: 3, purple: 3,
+        yellow: 4, gold: 4,
+        rose: 5, red: 5, pink: 5,
+      };
+      return colorMap[normalized] !== undefined ? colorMap[normalized] : null;
+    }
+
     // Note management
     function saveNewNote() {
       if (!newTitle.trim() && !newContent.trim()) return;
       
-      // Determine color: use tag's color if tag is provided, otherwise use selected color
+      // Determine color with priority:
+      // 1. Explicit color specified (from voice command)
+      // 2. Tag's default color
+      // 3. User-selected color
       let colorIdx = newColorIdx;
-      if (newTag.trim()) {
+      if (explicitColorIdx !== null) {
+        colorIdx = explicitColorIdx;
+      } else if (newTag.trim()) {
         colorIdx = getColorFromTag(newTag);
       }
       
@@ -351,6 +372,7 @@
       newContent = "";
       newTag = "";
       newColorIdx = 2;
+      explicitColorIdx = null;
       closeModal();
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
       showStatus("✅ Note saved!");
@@ -691,6 +713,16 @@
                 document.getElementById("newTag").value = newTag;
               }
               
+              if (parsed.color) {
+                // Convert color name to index
+                const colorIdx = getColorFromName(parsed.color);
+                if (colorIdx !== null) {
+                  explicitColorIdx = colorIdx;
+                  newColorIdx = colorIdx;
+                  updateModalContent();
+                }
+              }
+              
               if (parsed.content) {
                 // Only add to existing content if there's something there
                 if (newContent && newContent.trim()) {
@@ -798,7 +830,8 @@
 
     document.getElementById("newTag").addEventListener("input", (e) => {
       newTag = e.target.value;
-      // Auto-update color based on tag
+      // Auto-update color based on tag (manual tag entry resets explicit color)
+      explicitColorIdx = null;
       if (newTag.trim()) {
         newColorIdx = getColorFromTag(newTag);
         updateModalContent();
