@@ -938,6 +938,38 @@
           </div>
         `;
       }).join('') + '</div>';
+      
+      // Attach autosave listeners if editing
+      if (editingId) {
+        setTimeout(() => attachAutosaveListeners(), 0);
+      }
+    }
+
+    function attachAutosaveListeners() {
+      const titleInput = document.getElementById('editTitleInput');
+      const contentInput = document.getElementById('editContentInput');
+      const autosaveText = document.querySelector('.autosave-text');
+      
+      if (titleInput && contentInput) {
+        const updateAutosave = () => {
+          editTitle = titleInput.value;
+          editContent = contentInput.value;
+          if (autosaveText) {
+            autosaveText.textContent = 'Saving…';
+            autosaveText.style.color = '#ef4444';
+          }
+          autosaveEdit(editingId, editTitle, editContent);
+          setTimeout(() => {
+            if (autosaveText) {
+              autosaveText.textContent = '✅ Saved';
+              autosaveText.style.color = '#22c55e';
+            }
+          }, 500);
+        };
+        
+        titleInput.addEventListener('input', updateAutosave);
+        contentInput.addEventListener('input', updateAutosave);
+      }
     }
 
     function renderColorPicker() {
@@ -973,6 +1005,46 @@
       document.getElementById("newTitle").value = newTitle;
       document.getElementById("newContent").value = newContent;
       document.getElementById("newTag").value = newTag;
+      
+      // Attach autosave listeners for new note draft
+      setTimeout(() => attachNewNoteDraftListeners(), 0);
+    }
+    
+    function attachNewNoteDraftListeners() {
+      const titleInput = document.getElementById('newTitle');
+      const contentInput = document.getElementById('newContent');
+      const tagInput = document.getElementById('newTag');
+      const saveIndicator = document.getElementById('saveIndicator');
+      
+      if (titleInput && contentInput && tagInput) {
+        const updateDraft = () => {
+          newTitle = titleInput.value;
+          newContent = contentInput.value;
+          newTag = tagInput.value;
+          
+          if (saveIndicator) {
+            saveIndicator.classList.remove('hidden');
+            saveIndicator.textContent = 'Saving draft…';
+          }
+          
+          saveDraft();
+          
+          setTimeout(() => {
+            if (saveIndicator) {
+              saveIndicator.textContent = '✅ Saved';
+              setTimeout(() => saveIndicator.classList.add('hidden'), 2000);
+            }
+          }, 300);
+        };
+        
+        titleInput.removeEventListener('input', updateDraft); // Remove if exists
+        contentInput.removeEventListener('input', updateDraft);
+        tagInput.removeEventListener('input', updateDraft);
+        
+        titleInput.addEventListener('input', updateDraft);
+        contentInput.addEventListener('input', updateDraft);
+        tagInput.addEventListener('input', updateDraft);
+      }
     }
 
     function closeModal(e) {
