@@ -1,11 +1,10 @@
 /**
- * Voicenote Notion ↔ Cloudflare Sync Worker
- * Handles bidirectional sync between Notion and Cloudflare KV
- * Supports manual export/import for backup and sync
+ * Voicenote Worker - Sync to Notion
+ * Uses Cloudflare environment variables for API keys
  */
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -22,295 +21,224 @@ export default {
     }
 
     try {
-      // GET /api/notes - Fetch all notes from KV (or sync from Notion)
-      if (path === '/api/notes' && request.method === 'GET') {
-        const force = url.searchParams.get('force') === 'true';
-        
-        if (force) {
-          // Force sync from Notion
-          const notes = await syncNotesFromNotion(env);
-          return new Response(JSON.stringify(notes), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Return cached notes from KV
-        const cached = await env.VOICENOTE_KV.get('notes', 'json');
-        return new Response(JSON.stringify(cached || []), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      // Notes management endpoints
+      if (path === '/notes' && request.method === 'GET') {
+        return await getNotes(env, corsHeaders);
+      }
+      if (path === '/notes' && request.method === 'POST') {
+        return await createNote(request, env, corsHeaders);
+      }
+      if (path.match(/^\/notes\/[^/]+$/) && request.method === 'PUT') {
+        const noteId = path.split('/')[2];
+        return await updateNote(noteId, request, env, corsHeaders);
+      }
+      if (path.match(/^\/notes\/[^/]+$/) && request.method === 'DELETE') {
+        const noteId = path.split('/')[2];
+        return await deleteNote(noteId, env, corsHeaders);
       }
 
-      // POST /api/notes - Create new note (and sync to Notion)
-      if (path === '/api/notes' && request.method === 'POST') {
-        const note = await request.json();
-        const notionId = await createNoteInNotion(note, env);
-        
-        // Store in KV
-        const notes = await env.VOICENOTE_KV.get('notes', 'json') || [];
-        const newNote = { ...note, id: notionId, synced: true };
-        notes.push(newNote);
-        await env.VOICENOTE_KV.put('notes', JSON.stringify(notes));
-
-        return new Response(JSON.stringify(newNote), {
-          status: 201,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      // Sync to Notion endpoint
+      if (path === '/sync' && request.method === 'POST') {
+        return await syncToNotion(env, corsHeaders);
       }
 
-      // PUT /api/notes/:id - Update note (and sync to Notion)
-      if (path.match(/^\/api\/notes\/[^/]+$/) && request.method === 'PUT') {
-        const id = path.split('/').pop();
-        const updates = await request.json();
-        
-        // Update in Notion
-        await updateNoteInNotion(id, updates, env);
-        
-        // Update in KV
-        const notes = await env.VOICENOTE_KV.get('notes', 'json') || [];
-        const index = notes.findIndex(n => n.id === id);
-        if (index !== -1) {
-          notes[index] = { ...notes[index], ...updates, synced: true };
-          await env.VOICENOTE_KV.put('notes', JSON.stringify(notes));
-        }
-
-        return new Response(JSON.stringify(notes[index]), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // DELETE /api/notes/:id - Delete note
-      if (path.match(/^\/api\/notes\/[^/]+$/) && request.method === 'DELETE') {
-        const id = path.split('/').pop();
-        
-        // Delete from Notion
-        await deleteNoteInNotion(id, env);
-        
-        // Remove from KV
-        const notes = await env.VOICENOTE_KV.get('notes', 'json') || [];
-        const filtered = notes.filter(n => n.id !== id);
-        await env.VOICENOTE_KV.put('notes', JSON.stringify(filtered));
-
-        return new Response(JSON.stringify({ success: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // POST /api/sync - Manual sync from Notion to KV
-      if (path === '/api/sync' && request.method === 'POST') {
-        const notes = await syncNotesFromNotion(env);
-        return new Response(JSON.stringify({ synced: notes.length, notes }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // GET /api/export - Export all notes as JSON (backup)
-      if (path === '/api/export' && request.method === 'GET') {
-        const notes = await env.VOICENOTE_KV.get('notes', 'json') || [];
-        const exportData = {
-          exported: new Date().toISOString(),
-          count: notes.length,
-          notes: notes,
-        };
-
-        return new Response(JSON.stringify(exportData, null, 2), {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Content-Disposition': 'attachment; filename="voicenotes-export.json"',
-          },
-        });
-      }
-
-      // POST /api/import - Import notes from JSON and sync to Notion
-      if (path === '/api/import' && request.method === 'POST') {
-        const importData = await request.json();
-        const notes = importData.notes || importData;
-
-        // Validate notes array
-        if (!Array.isArray(notes)) {
-          return new Response(JSON.stringify({ error: 'Invalid format. Expected array of notes.' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Create each note in Notion
-        const results = [];
-        for (const note of notes) {
-          try {
-            const notionId = await createNoteInNotion(note, env);
-            results.push({
-              title: note.title,
-              notionId,
-              status: 'synced',
-            });
-          } catch (err) {
-            results.push({
-              title: note.title,
-              status: 'error',
-              error: err.message,
-            });
-          }
-        }
-
-        // Update KV cache with all notes
-        const kvNotes = await env.VOICENOTE_KV.get('notes', 'json') || [];
-        const updatedNotes = [...kvNotes];
-        for (let i = 0; i < notes.length; i++) {
-          if (results[i].status === 'synced') {
-            const existingIndex = updatedNotes.findIndex(n => n.title === notes[i].title);
-            if (existingIndex === -1) {
-              updatedNotes.push({ ...notes[i], id: results[i].notionId, synced: true });
-            }
-          }
-        }
-        await env.VOICENOTE_KV.put('notes', JSON.stringify(updatedNotes));
-
-        return new Response(JSON.stringify({
-          imported: results.length,
-          results,
-          timestamp: new Date().toISOString(),
-        }), {
-          status: 201,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      return new Response('Not Found', { status: 404 });
+      return new Response(JSON.stringify({ error: 'Not Found' }), { 
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Worker error:', error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-  },
+  }
 };
 
-/**
- * Sync notes from Notion to KV
- */
-async function syncNotesFromNotion(env) {
-  const notionToken = env.NOTION_API_KEY;
-  const databaseId = env.NOTION_DATABASE_ID;
+// Get all notes from KV
+async function getNotes(env, corsHeaders) {
+  try {
+    const keys = await env.NOTES_KV.list();
+    const notes = [];
 
-  const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${notionToken}`,
-      'Notion-Version': '2024-02-15',
-    },
-    body: JSON.stringify({}),
-  });
+    for (const key of keys.keys) {
+      const note = await env.NOTES_KV.get(key.name, 'json');
+      if (note) {
+        notes.push({ id: key.name, ...note });
+      }
+    }
 
-  const data = await response.json();
-  const notes = data.results.map(page => ({
-    id: page.id,
-    title: getPropertyValue(page, 'Title'),
-    content: getPropertyValue(page, 'Content'),
-    color: getPropertyValue(page, 'Color'),
-    tags: getPropertyValue(page, 'Tags'),
-    created: page.created_time,
-    updated: page.last_edited_time,
-  }));
-
-  await env.VOICENOTE_KV.put('notes', JSON.stringify(notes));
-  return notes;
-}
-
-/**
- * Create note in Notion
- */
-async function createNoteInNotion(note, env) {
-  const notionToken = env.NOTION_API_KEY;
-  const databaseId = env.NOTION_DATABASE_ID;
-
-  const response = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${notionToken}`,
-      'Notion-Version': '2024-02-15',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      parent: { database_id: databaseId },
-      properties: {
-        Title: { title: [{ text: { content: note.title || 'Untitled' } }] },
-        Content: { rich_text: [{ text: { content: note.content || '' } }] },
-        Color: { select: { name: note.color || 'gray' } },
-        Tags: { multi_select: (note.tags || []).map(t => ({ name: t })) },
-      },
-    }),
-  });
-
-  const data = await response.json();
-  if (!data.id) {
-    throw new Error(data.message || 'Failed to create note in Notion');
+    return new Response(JSON.stringify(notes), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
-  return data.id;
 }
 
-/**
- * Update note in Notion
- */
-async function updateNoteInNotion(pageId, updates, env) {
-  const notionToken = env.NOTION_API_KEY;
+// Create a new note
+async function createNote(request, env, corsHeaders) {
+  try {
+    const data = await request.json();
+    const noteId = Date.now().toString();
+    const note = {
+      title: data.title || 'Untitled',
+      content: data.content || '',
+      color: data.color || '#FFE5B4',
+      tags: data.tags || [],
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
 
-  const properties = {};
-  if (updates.title) properties.Title = { title: [{ text: { content: updates.title } }] };
-  if (updates.content) properties.Content = { rich_text: [{ text: { content: updates.content } }] };
-  if (updates.color) properties.Color = { select: { name: updates.color } };
-  if (updates.tags) properties.Tags = { multi_select: updates.tags.map(t => ({ name: t })) };
+    await env.NOTES_KV.put(noteId, JSON.stringify(note));
 
-  await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${notionToken}`,
-      'Notion-Version': '2024-02-15',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ properties }),
-  });
+    return new Response(JSON.stringify({ id: noteId, ...note }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 }
 
-/**
- * Delete note in Notion
- */
-async function deleteNoteInNotion(pageId, env) {
-  const notionToken = env.NOTION_API_KEY;
+// Update a note
+async function updateNote(noteId, request, env, corsHeaders) {
+  try {
+    const data = await request.json();
+    const existing = await env.NOTES_KV.get(noteId, 'json');
 
-  await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${notionToken}`,
-      'Notion-Version': '2024-02-15',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      archived: true,
-    }),
-  });
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Note not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const updated = {
+      ...existing,
+      ...data,
+      updated: new Date().toISOString()
+    };
+
+    await env.NOTES_KV.put(noteId, JSON.stringify(updated));
+
+    return new Response(JSON.stringify({ id: noteId, ...updated }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 }
 
-/**
- * Helper: Extract property value from Notion page
- */
-function getPropertyValue(page, propertyName) {
-  const prop = page.properties[propertyName];
-  if (!prop) return null;
+// Delete a note
+async function deleteNote(noteId, env, corsHeaders) {
+  try {
+    const existing = await env.NOTES_KV.get(noteId);
 
-  switch (prop.type) {
-    case 'title':
-      return prop.title.map(t => t.plain_text).join('');
-    case 'rich_text':
-      return prop.rich_text.map(t => t.plain_text).join('');
-    case 'select':
-      return prop.select?.name || null;
-    case 'multi_select':
-      return prop.multi_select.map(s => s.name);
-    default:
-      return null;
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Note not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    await env.NOTES_KV.delete(noteId);
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// Sync all notes to Notion
+async function syncToNotion(env, corsHeaders) {
+  try {
+    // Check for required env variables
+    if (!env.NOTION_API_KEY || !env.NOTION_DATABASE_ID) {
+      return new Response(
+        JSON.stringify({ error: 'Missing NOTION_API_KEY or NOTION_DATABASE_ID environment variables' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Get all notes from KV
+    const keys = await env.NOTES_KV.list();
+    const syncResults = {
+      synced: 0,
+      failed: 0,
+      errors: []
+    };
+
+    for (const key of keys.keys) {
+      try {
+        const note = await env.NOTES_KV.get(key.name, 'json');
+        if (!note) continue;
+
+        // Create/update page in Notion
+        const notionResponse = await fetch('https://api.notion.com/v1/pages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.NOTION_API_KEY}`,
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            parent: { database_id: env.NOTION_DATABASE_ID },
+            properties: {
+              'Title': {
+                title: [{ text: { content: note.title || 'Untitled' } }]
+              },
+              'Content': {
+                rich_text: [{ text: { content: note.content || '' } }]
+              },
+              'Color': {
+                rich_text: [{ text: { content: note.color || '#FFE5B4' } }]
+              },
+              'Tags': {
+                multi_select: (note.tags || []).map(tag => ({ name: tag }))
+              }
+            }
+          })
+        });
+
+        if (notionResponse.ok) {
+          syncResults.synced++;
+        } else {
+          syncResults.failed++;
+          const errorData = await notionResponse.text();
+          syncResults.errors.push(`Note ${key.name}: ${errorData}`);
+        }
+      } catch (error) {
+        syncResults.failed++;
+        syncResults.errors.push(`Note ${key.name}: ${error.message}`);
+      }
+    }
+
+    return new Response(JSON.stringify(syncResults), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 }
