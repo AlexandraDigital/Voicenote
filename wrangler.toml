@@ -1,11 +1,23 @@
-name = "voicenote-notion-sync"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
+name = "voicenote-worker"
+main = "src/worker.js"
+compatibility_date = "2024-02-15"
 
 [env.production]
-environment = "production"
-vars = { NOTION_API_KEY = "", NOTION_DATABASE_ID = "" }
+name = "voicenote-worker-prod"
+routes = [
+  { pattern = "voicenote-bgd.pages.dev/api/*", zone_name = "pages.dev" }
+]
+kv_namespaces = [
+  { binding = "VOICENOTE_KV", id = "", preview_id = "" }
+]
 
-[env.development]
-environment = "development"
-vars = { NOTION_API_KEY = "", NOTION_DATABASE_ID = "" }
+[env.preview]
+kv_namespaces = [
+  { binding = "VOICENOTE_KV", id = "", preview_id = "" }
+]
+
+vars = { ENVIRONMENT = "production" }
+
+[build]
+command = "npm install"
+cwd = "."
