@@ -432,7 +432,7 @@
     const NOTION_CONFIG = {
       databaseId: "35929f4c08ff803a8b90f8aa48b4447a",
       dataSourceId: "35929f4c-08ff-8016-be10-000bb394681b",
-      apiEndpoint: "/api/notion-sync" // Backend endpoint
+      apiEndpoint: "https://voicenote-bgd.pages.dev/notion-sync" // Cloudflare backend endpoint
     };
 
     async function exportNotesToNotion() {
