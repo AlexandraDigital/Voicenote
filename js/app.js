@@ -428,7 +428,96 @@
       renderNotes();
     }
 
-    function exportNotes() {
+    // NOTION SYNC CONFIG
+    const NOTION_CONFIG = {
+      databaseId: "35929f4c08ff803a8b90f8aa48b4447a",
+      dataSourceId: "35929f4c-08ff-8016-be10-000bb394681b",
+      apiEndpoint: "/api/notion-sync" // Backend endpoint
+    };
+
+    async function exportNotesToNotion() {
+      try {
+        showStatus("📤 Syncing notes to Notion...");
+        
+        const notesToSync = notes.map(note => ({
+          "File Name": note.title || "Untitled",
+          "File Type": "Audio", // Notes from voice are audio type
+          "File Size": (note.content?.length || 0).toString(),
+          "Status": "Active",
+          "Upload Date": note.date ? new Date(note.date).toISOString() : new Date().toISOString(),
+          "userDefined:URL": "",
+          content: note.content || "",
+          tags: note.tags?.join(", ") || "",
+          colorIdx: note.colorIdx || 0
+        }));
+
+        // Check if backend is available
+        if (typeof fetch !== 'undefined') {
+          const response = await fetch(NOTION_CONFIG.apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              action: 'export',
+              notes: notesToSync,
+              databaseId: NOTION_CONFIG.databaseId
+            })
+          });
+
+          if (response.ok) {
+            showStatus("✅ Notes synced to Notion! Check your database.");
+          } else {
+            // Fallback: Download as JSON for manual import
+            downloadNotesAsJSON();
+            showStatus("⚠️ Backend unavailable. Downloaded as JSON. See instructions.");
+          }
+        } else {
+          downloadNotesAsJSON();
+        }
+      } catch (err) {
+        console.error("Export error:", err);
+        downloadNotesAsJSON();
+        showStatus("⚠️ Notion sync unavailable. Downloaded as JSON instead.");
+      }
+    }
+
+    async function importNotesFromNotion() {
+      try {
+        showStatus("📥 Loading notes from Notion...");
+        
+        const response = await fetch(NOTION_CONFIG.apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: 'import',
+            databaseId: NOTION_CONFIG.databaseId
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const importedNotes = data.notes.map((item, idx) => ({
+            id: Date.now() + idx,
+            title: item["File Name"] || "Untitled",
+            content: item.content || item["File Size"] || "",
+            date: item["Upload Date"] ? new Date(item["Upload Date"]) : new Date(),
+            colorIdx: item.colorIdx || 0,
+            tags: item.tags ? item.tags.split(", ").filter(t => t) : []
+          }));
+
+          notes = importedNotes;
+          persistNotes();
+          renderNotes();
+          showStatus(`✅ Imported ${importedNotes.length} notes from Notion!`);
+        } else {
+          showStatus("❌ Could not load from Notion. Please check your connection.");
+        }
+      } catch (err) {
+        console.error("Import error:", err);
+        showStatus("❌ Notion import failed. Manual import unavailable.");
+      }
+    }
+
+    function downloadNotesAsJSON() {
       const dataStr = JSON.stringify(notes, null, 2);
       const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
@@ -439,10 +528,30 @@
       link.download = `voicenotes-backup-${dateStr}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      showStatus("📥 Notes exported!");
+    }
+
+    function exportNotes() {
+      // Show options to export to Notion or as JSON
+      const choice = confirm("Export to Notion (OK) or Download as JSON (Cancel)?");
+      if (choice) {
+        exportNotesToNotion();
+      } else {
+        downloadNotesAsJSON();
+        showStatus("📥 Notes exported as JSON!");
+      }
     }
 
     function importNotes() {
+      // Show options to import from Notion or JSON file
+      const choice = confirm("Import from Notion (OK) or Upload JSON file (Cancel)?");
+      if (choice) {
+        importNotesFromNotion();
+      } else {
+        importFromJSON();
+      }
+    }
+
+    function importFromJSON() {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".json";
@@ -457,7 +566,7 @@
               notes = imported;
               persistNotes();
               renderNotes();
-              showStatus("📤 Notes imported!");
+              showStatus("📤 Notes imported from JSON!");
             } else {
               showStatus("❌ Invalid backup file");
             }

@@ -1,0 +1,25 @@
+{
+  "name": "voicenotes-notion-sync",
+  "version": "1.0.0",
+  "description": "Backend service for syncing VoiceNotes with Notion database",
+  "main": "notion-sync-backend.js",
+  "scripts": {
+    "start": "node notion-sync-backend.js",
+    "dev": "nodemon notion-sync-backend.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.13",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["voicenotes", "notion", "sync"],
+  "author": "Alexandra",
+  "license": "MIT"
+}
