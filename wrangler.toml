@@ -1,0 +1,11 @@
+name = "voicenote-notion-sync"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+environment = "production"
+vars = { NOTION_API_KEY = "", NOTION_DATABASE_ID = "" }
+
+[env.development]
+environment = "development"
+vars = { NOTION_API_KEY = "", NOTION_DATABASE_ID = "" }
