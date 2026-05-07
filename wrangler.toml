@@ -5,7 +5,7 @@ compatibility_date = "2024-02-15"
 [env.production]
 name = "voicenote-worker-prod"
 routes = [
-  { pattern = "voicenote-bgd.pages.dev/api/*", zone_name = "pages.dev" }
+  { pattern = "voicenote-api.pages.dev/*", zone_name = "pages.dev" }
 ]
 kv_namespaces = [
   { binding = "VOICENOTE_KV", id = "795d3c717f0b4e99b933c3714cbdf547", preview_id = "795d3c717f0b4e99b933c3714cbdf547" }
