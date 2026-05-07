@@ -1,6 +1,7 @@
 /**
  * Voicenote Notion ↔ Cloudflare Sync Worker
  * Handles bidirectional sync between Notion and Cloudflare KV
+ * Supports manual export/import for backup and sync
  */
 
 export default {
@@ -11,7 +12,7 @@ export default {
     // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
 
@@ -95,10 +96,84 @@ export default {
         });
       }
 
-      // POST /api/sync - Manual sync trigger
+      // POST /api/sync - Manual sync from Notion to KV
       if (path === '/api/sync' && request.method === 'POST') {
         const notes = await syncNotesFromNotion(env);
-        return new Response(JSON.stringify({ synced: notes.length }), {
+        return new Response(JSON.stringify({ synced: notes.length, notes }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // GET /api/export - Export all notes as JSON (backup)
+      if (path === '/api/export' && request.method === 'GET') {
+        const notes = await env.VOICENOTE_KV.get('notes', 'json') || [];
+        const exportData = {
+          exported: new Date().toISOString(),
+          count: notes.length,
+          notes: notes,
+        };
+
+        return new Response(JSON.stringify(exportData, null, 2), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Content-Disposition': 'attachment; filename="voicenotes-export.json"',
+          },
+        });
+      }
+
+      // POST /api/import - Import notes from JSON and sync to Notion
+      if (path === '/api/import' && request.method === 'POST') {
+        const importData = await request.json();
+        const notes = importData.notes || importData;
+
+        // Validate notes array
+        if (!Array.isArray(notes)) {
+          return new Response(JSON.stringify({ error: 'Invalid format. Expected array of notes.' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Create each note in Notion
+        const results = [];
+        for (const note of notes) {
+          try {
+            const notionId = await createNoteInNotion(note, env);
+            results.push({
+              title: note.title,
+              notionId,
+              status: 'synced',
+            });
+          } catch (err) {
+            results.push({
+              title: note.title,
+              status: 'error',
+              error: err.message,
+            });
+          }
+        }
+
+        // Update KV cache with all notes
+        const kvNotes = await env.VOICENOTE_KV.get('notes', 'json') || [];
+        const updatedNotes = [...kvNotes];
+        for (let i = 0; i < notes.length; i++) {
+          if (results[i].status === 'synced') {
+            const existingIndex = updatedNotes.findIndex(n => n.title === notes[i].title);
+            if (existingIndex === -1) {
+              updatedNotes.push({ ...notes[i], id: results[i].notionId, synced: true });
+            }
+          }
+        }
+        await env.VOICENOTE_KV.put('notes', JSON.stringify(updatedNotes));
+
+        return new Response(JSON.stringify({
+          imported: results.length,
+          results,
+          timestamp: new Date().toISOString(),
+        }), {
+          status: 201,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -162,15 +237,18 @@ async function createNoteInNotion(note, env) {
     body: JSON.stringify({
       parent: { database_id: databaseId },
       properties: {
-        Title: { title: [{ text: { content: note.title } }] },
-        Content: { rich_text: [{ text: { content: note.content } }] },
-        Color: { select: { name: note.color } },
-        Tags: { multi_select: note.tags.map(t => ({ name: t })) },
+        Title: { title: [{ text: { content: note.title || 'Untitled' } }] },
+        Content: { rich_text: [{ text: { content: note.content || '' } }] },
+        Color: { select: { name: note.color || 'gray' } },
+        Tags: { multi_select: (note.tags || []).map(t => ({ name: t })) },
       },
     }),
   });
 
   const data = await response.json();
+  if (!data.id) {
+    throw new Error(data.message || 'Failed to create note in Notion');
+  }
   return data.id;
 }
 
