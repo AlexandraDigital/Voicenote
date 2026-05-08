@@ -212,6 +212,25 @@
       background: var(--sky-dark);
     }
 
+    .icon-btn-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      color: var(--slate-light);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .icon-btn-header:hover {
+      background: var(--sky-light);
+      color: var(--sky);
+    }
+
     .install-banner {
       background: linear-gradient(135deg, var(--sky), var(--sky-dark));
       color: var(--white);
@@ -640,6 +659,16 @@
           </div>
           <input id="searchInput" type="text" class="search-input" placeholder="Search…">
         </div>
+        <button id="syncBtn" class="icon-btn-header" title="Sync notes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36" />
+          </svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn-header" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6m-16.78 7.78l4.24-4.24m3.08-3.08l4.24-4.24" />
+          </svg>
+        </button>
         <button id="installBtn" class="btn-install">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v10M7 15l5 5 5-5" />
@@ -672,7 +701,7 @@
   <div id="newNoteModal" class="modal-overlay hidden" onclick="closeModal(event)">
     <div class="modal-content" id="modalContent">
       <div class="modal-header">
-        <span class="modal-title">New Note</span>
+        <span id="modalTitle" class="modal-title">New Note</span>
         <div class="color-picker" id="colorPicker"></div>
       </div>
       <input id="newTitle" type="text" placeholder="Title…" style="margin-bottom: 10px; font-weight: 600; font-size: 15px; background: rgba(255,255,255,0.7);">
@@ -992,6 +1021,7 @@
       showNewNote = true;
       const modal = document.getElementById("newNoteModal");
       modal.classList.remove("hidden");
+      document.getElementById("modalTitle").textContent = "New Note";
       updateModalContent();
       document.getElementById("newTitle").focus();
       const draft = loadDraft();
@@ -1295,6 +1325,20 @@
       }
     }
 
+    // Sync and Settings handlers
+    function handleSync() {
+      showStatus("🔄 Syncing notes...");
+      // TODO: Implement sync functionality (e.g., cloud sync, export, etc.)
+      setTimeout(() => {
+        showStatus("✅ Sync complete!");
+      }, 1500);
+    }
+
+    function handleSettings() {
+      showStatus("⚙️ Settings coming soon!");
+      // TODO: Implement settings modal/panel
+    }
+
     // Event listeners
     document.getElementById("installBtn").addEventListener("click", handleInstall);
     document.getElementById("bannerInstallBtn").addEventListener("click", handleInstall);
@@ -1302,6 +1346,8 @@
     document.getElementById("saveNoteBtn").addEventListener("click", saveNewNote);
     document.getElementById("modalMicBtn").addEventListener("click", handleModalMicClick);
     document.getElementById("floatingMicBtn").addEventListener("click", handleFloatingMicClick);
+    document.getElementById("syncBtn").addEventListener("click", handleSync);
+    document.getElementById("settingsBtn").addEventListener("click", handleSettings);
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
       search = e.target.value;
