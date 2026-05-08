@@ -147,7 +147,7 @@ PORT=3001
 - Check backend logs for error messages
 
 ### Import returns empty
-- Make sure your Notion database has notes with "File Name" property
+- Make sure your Notion database has notes with the properties listed below
 - Check that the database ID is correct
 - Verify the integration has read access
 
@@ -159,12 +159,12 @@ Your VoiceNote database should have these properties:
 
 | Property | Type | Required |
 |----------|------|----------|
-| File Name | Title | ✅ Yes |
-| File Type | Select | Optional |
-| File Size | Text | Optional |
-| Status | Status | Optional |
-| Upload Date | Date | Optional |
-| URL | URL | Optional |
+| Name | Title | ✅ Yes |
+| Content | Text | Optional |
+| Color | Text | Optional |
+| Tags | Multi-select | Optional |
+| NoteID | Text | Optional |
+| Created | Date | Optional |
 
 ---
 
