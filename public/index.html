@@ -623,7 +623,7 @@
         </div>
     </div>
 
-    <button class="fab" id="newNoteBtn">➕</button>
+    <button class="fab" id="newNoteBtn" style="font-size: 32px; font-weight: 300;">+</button>
 
     <script>
         // Check if Web Speech API is supported
@@ -703,28 +703,38 @@
                 
                 if (!transcript) return;
 
-                if (voiceCommandMode && isFinal) {
-                    handleVoiceCommand(transcript);
-                } else if (currentVoiceField && isFinal) {
-                    const input = document.getElementById(currentVoiceField);
-                    if (currentVoiceField === 'tagInput') {
-                        addTag(transcript);
-                    } else if (currentVoiceField === 'noteContent') {
-                        input.value += (input.value ? ' ' : '') + transcript;
-                    } else {
-                        input.value = transcript;
+                // Handle field voice input (priority over voice commands)
+                if (currentVoiceField) {
+                    if (isFinal) {
+                        const input = document.getElementById(currentVoiceField);
+                        if (input) {
+                            if (currentVoiceField === 'tagInput') {
+                                addTag(transcript);
+                                input.value = '';
+                            } else if (currentVoiceField === 'noteContent') {
+                                input.value += (input.value ? ' ' : '') + transcript;
+                            } else {
+                                input.value = transcript;
+                            }
+                            showToast(`✅ ${transcript}`);
+                        }
+                        currentVoiceField = null;
+                        stopListening();
                     }
-                    currentVoiceField = null;
-                    stopListening();
+                } else if (voiceCommandMode && isFinal) {
+                    handleVoiceCommand(transcript);
                 }
             });
 
             recognition.addEventListener('error', (e) => {
                 console.error('Speech recognition error:', e.error);
-                if (e.error !== 'no-speech') {
+                if (e.error === 'network') {
+                    showToast('🎤 Network error - check your connection');
+                } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
                     showToast('🎤 Error: ' + e.error);
                 }
                 stopListening();
+                currentVoiceField = null;
             });
 
             recognition.addEventListener('end', () => {
@@ -746,9 +756,24 @@
                 return;
             }
             
+            // Stop voice command mode if active
+            if (voiceCommandMode) {
+                voiceCommandMode = false;
+                document.getElementById('voiceCmd').classList.remove('active');
+                recognition.abort();
+            }
+            
             currentVoiceField = fieldId;
             startListening();
-            recognition.start();
+            
+            // Restart recognition for this field
+            setTimeout(() => {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log('Recognition already running');
+                }
+            }, 100);
         }
 
         function startListening() {
@@ -759,7 +784,8 @@
 
         function stopListening() {
             isListening = false;
-            document.querySelectorAll('.voice-mic').forEach(btn => btn.classList.remove('listening'));
+            document.querySelectorAll('.voice-mic, .btn-icon').forEach(btn => btn.classList.remove('listening'));
+            currentVoiceField = null;
         }
 
         function toggleVoiceCommands() {
