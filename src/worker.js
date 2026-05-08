@@ -208,7 +208,7 @@ function notionPageToNote(page) {
   const p = page.properties || {};
   const txt = (prop) => prop?.rich_text?.[0]?.plain_text || '';
   return {
-    title: p.Title?.title?.[0]?.plain_text || 'Untitled',
+    title: p.Name?.title?.[0]?.plain_text || 'Untitled',
     content: txt(p.Content),
     color: txt(p.Color) || '#fff7ed',
     tags: (p.Tags?.multi_select || []).map(t => t.name),
