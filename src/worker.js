@@ -30,11 +30,17 @@ const NOTION_API = 'https://api.notion.com/v1';
 
 function corsHeaders(request) {
   const origin = request?.headers?.get('Origin') || '';
-  const allowed = origin.endsWith('.pages.dev') ||
-                  origin.endsWith('.workers.dev') ||
-                  origin === 'https://voicenote-bgd.pages.dev';
+
+  const allowed =
+    !origin ||                                      // non-browser / curl
+    origin.endsWith('.pages.dev') ||
+    origin.endsWith('.workers.dev') ||
+    origin.startsWith('http://localhost') ||        // any localhost port
+    origin.startsWith('http://127.0.0.1') ||        // 127.x.x.x variants
+    origin === 'https://voicenote-bgd.pages.dev';   // explicit production
+
   return {
-    'Access-Control-Allow-Origin': allowed ? origin : 'https://voicenote-bgd.pages.dev',
+    'Access-Control-Allow-Origin': allowed ? (origin || '*') : 'https://voicenote-bgd.pages.dev',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Watch-Client',
     'Access-Control-Allow-Credentials': 'true',
@@ -184,8 +190,6 @@ function requireNotion(env) {
   }
 }
 
-// Uses standard 2022-06-28 Notion API with database_id
-
 function noteToNotionBody(note, databaseId) {
   return {
     parent: { database_id: databaseId },
@@ -219,14 +223,13 @@ function notionPageToNote(page) {
 
 async function syncPush(env) {
   requireNotion(env);
-  
+
   const notes = await allNotes(env);
   const results = { pushed: 0, updated: 0, failed: 0, errors: [] };
 
   for (const note of notes) {
     try {
       if (note.notionId) {
-        // Try to update existing Notion page
         const res = await fetch(`${NOTION_API}/pages/${note.notionId}`, {
           method: 'PATCH',
           headers: notionHeaders(env),
@@ -239,7 +242,6 @@ async function syncPush(env) {
         // If 404/archived, fall through to create
       }
 
-      // Create new Notion page
       const res = await fetch(`${NOTION_API}/pages`, {
         method: 'POST',
         headers: notionHeaders(env),
@@ -273,7 +275,6 @@ async function syncPull(env) {
 
   let cursor;
   const pages = [];
-  
 
   do {
     const body = { page_size: 100 };
@@ -364,7 +365,6 @@ async function watchQuickAdd(request, env) {
   let notionResult = null;
   if (env.NOTION_API_KEY && env.NOTION_DATABASE_ID) {
     try {
-      
       const res = await fetch(`${NOTION_API}/pages`, {
         method: 'POST',
         headers: notionHeaders(env),
@@ -384,4 +384,4 @@ async function watchQuickAdd(request, env) {
   }
 
   return json({ note, notion: notionResult }, 201);
-}
+        }
