@@ -1,565 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voicenote - Mobile App</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding-bottom: 100px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-
-        .sync-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-top: 10px;
-            transition: all 0.3s;
-        }
-
-        .sync-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .sync-btn.syncing {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 0 10px;
-        }
-
-        .notes-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .note-card {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .note-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        .note-card.red { border-left-color: #ef4444; }
-        .note-card.orange { border-left-color: #f97316; }
-        .note-card.yellow { border-left-color: #eab308; }
-        .note-card.green { border-left-color: #22c55e; }
-        .note-card.blue { border-left-color: #3b82f6; }
-        .note-card.purple { border-left-color: #a855f7; }
-        .note-card.pink { border-left-color: #ec4899; }
-        .note-card.gray { border-left-color: #6b7280; }
-
-        .note-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-
-        .note-preview {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 10px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .note-tags {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-
-        .tag {
-            background: #e5e7eb;
-            color: #374151;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-
-        .note-meta {
-            font-size: 12px;
-            color: #9ca3af;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            overflow-y: auto;
-            padding-bottom: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: flex-end;
-        }
-
-        .modal-content {
-            background: white;
-            width: 100%;
-            border-radius: 16px 16px 0 0;
-            padding: 20px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .modal-header h2 {
-            font-size: 20px;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #6b7280;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #374151;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .color-picker {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .color-option {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 8px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .color-option.red { background: #ef4444; }
-        .color-option.orange { background: #f97316; }
-        .color-option.yellow { background: #eab308; }
-        .color-option.green { background: #22c55e; }
-        .color-option.blue { background: #3b82f6; }
-        .color-option.purple { background: #a855f7; }
-        .color-option.pink { background: #ec4899; }
-        .color-option.gray { background: #6b7280; }
-
-        .color-option.selected {
-            border-color: white;
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
-        }
-
-        .fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-            z-index: 500;
-            transition: all 0.3s;
-        }
-
-        .fab:active {
-            transform: scale(0.95);
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-save {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-delete {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .btn-cancel {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #9ca3af;
-        }
-
-        .empty-state p {
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 480px) {
-            .header h1 { font-size: 24px; }
-            .note-card { border-radius: 8px; }
-            .modal-content { border-radius: 12px 12px 0 0; }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🎤 Voicenote</h1>
-        <button class="sync-btn" id="syncBtn" onclick="syncNotes()">
-            <span id="syncText">Sync with Notion</span>
-        </button>
-    </div>
-
-    <div class="container">
-        <div class="notes-list" id="notesList"></div>
-        <div class="empty-state" id="emptyState">
-            <p>No notes yet</p>
-            <p style="font-size: 12px;">Tap + to create your first note</p>
-        </div>
-    </div>
-
-    <button class="fab" id="addBtn" onclick="openNewNoteModal()">+</button>
-
-    <!-- Note Detail Modal -->
-    <div class="modal" id="noteModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">New Note</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-
-            <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="noteTitle" placeholder="Note title">
-            </div>
-
-            <div class="form-group">
-                <label>Content</label>
-                <textarea id="noteContent" placeholder="Write your note here..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Color</label>
-                <div class="color-picker" id="colorPicker"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Tags (comma-separated)</label>
-                <input type="text" id="noteTags" placeholder="e.g., important, personal, work">
-            </div>
-
-            <div class="actions">
-                <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-save" onclick="saveNote()" id="saveBtn">Save</button>
-                <button class="btn btn-delete" onclick="deleteNote()" id="deleteBtn" style="display:none;">Delete</button>
-            </div>
-        </div>
-    </div>
+<!doctype html>
+<html data-theme="alfred-light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" type="text/css" />
+    <style>[data-theme='alfred-light'] {
+  color-scheme: light;
+  --radius-selector: 0rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+  --color-base-100: #f5f5f5;
+  --color-base-200: #eaeaea;
+  --color-base-300: #dfdfdf;
+  --color-base-content: #1c1c1e;
+  --color-primary: #4f6f52;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff7f50;
+  --color-secondary-content: #1c1c1e;
+  --color-accent: #ff7f50;
+  --color-accent-content: #1c1c1e;
+  --color-neutral: #1f1f23;
+  --color-neutral-content: #e8e8ec;
+  --color-info: #4a7c9b;
+  --color-info-content: #f4f4f5;
+  --color-success: #3d8b6e;
+  --color-success-content: #f4f4f5;
+  --color-warning: #b8860b;
+  --color-warning-content: #1c1c1e;
+  --color-error: #9e3d32;
+  --color-error-content: #f4f4f5;
+}
+[data-theme='alfred-dark'] {
+  color-scheme: dark;
+  --radius-selector: 0rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+  --color-base-100: #121215;
+  --color-base-200: #1a1a1e;
+  --color-base-300: #252529;
+  --color-base-content: #f4f4f5;
+  --color-primary: #4f6f52;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff7f50;
+  --color-secondary-content: #1c1c1e;
+  --color-accent: #ff7f50;
+  --color-accent-content: #1c1c1e;
+  --color-neutral: #3a3a42;
+  --color-neutral-content: #b8b8c0;
+  --color-info: #4a7c9b;
+  --color-info-content: #f4f4f5;
+  --color-success: #3d8b6e;
+  --color-success-content: #f4f4f5;
+  --color-warning: #b8860b;
+  --color-warning-content: #1c1c1e;
+  --color-error: #9e3d32;
+  --color-error-content: #f4f4f5;
+}
+</style>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <script>
-        const API_BASE = 'https://voicenote-worker.futuresuccess105.workers.dev';
-        let currentNote = null;
-        const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'];
-
-        // Initialize color picker
-        function initColorPicker() {
-            const picker = document.getElementById('colorPicker');
-            colors.forEach(color => {
-                const div = document.createElement('div');
-                div.className = `color-option ${color}`;
-                div.onclick = () => {
-                    document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-                    div.classList.add('selected');
-                };
-                picker.appendChild(div);
-            });
-        }
-
-        // Load notes
-        async function loadNotes() {
-            try {
-                const response = await fetch(`${API_BASE}/notes`);
-                const notes = await response.json();
-                renderNotes(notes);
-            } catch (error) {
-                console.error('Failed to load notes:', error);
-            }
-        }
-
-        // Render notes
-        function renderNotes(notes) {
-            const container = document.getElementById('notesList');
-            const empty = document.getElementById('emptyState');
-
-            if (!notes || notes.length === 0) {
-                container.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            container.innerHTML = notes.map(note => `
-                <div class="note-card ${note.color}" onclick="openNote('${note.id}')">
-                    <div class="note-title">${escapeHtml(note.title)}</div>
-                    <div class="note-preview">${escapeHtml(note.content)}</div>
-                    ${note.tags && note.tags.length > 0 ? `
-                        <div class="note-tags">
-                            ${note.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
-                        </div>
-                    ` : ''}
-                    <div class="note-meta">${new Date(note.updated || note.created).toLocaleDateString()}</div>
-                </div>
-            `).join('');
-        }
-
-        // Open new note modal
-        function openNewNoteModal() {
-            currentNote = null;
-            document.getElementById('modalTitle').textContent = 'New Note';
-            document.getElementById('noteTitle').value = '';
-            document.getElementById('noteContent').value = '';
-            document.getElementById('noteTags').value = '';
-            document.getElementById('saveBtn').textContent = 'Create';
-            document.getElementById('deleteBtn').style.display = 'none';
-            document.querySelectorAll('.color-option').forEach((c, i) => {
-                if (i === 0) c.classList.add('selected');
-                else c.classList.remove('selected');
-            });
-            document.getElementById('noteModal').classList.add('active');
-        }
-
-        // Open existing note
-        function openNote(id) {
-            loadNotes().then(() => {
-                const response = fetch(`${API_BASE}/notes`);
-                response.then(r => r.json()).then(notes => {
-                    const note = notes.find(n => n.id === id);
-                    if (note) {
-                        currentNote = note;
-                        document.getElementById('modalTitle').textContent = 'Edit Note';
-                        document.getElementById('noteTitle').value = note.title;
-                        document.getElementById('noteContent').value = note.content;
-                        document.getElementById('noteTags').value = (note.tags || []).join(', ');
-                        document.getElementById('saveBtn').textContent = 'Update';
-                        document.getElementById('deleteBtn').style.display = 'block';
-                        
-                        // Select color
-                        document.querySelectorAll('.color-option').forEach(c => {
-                            c.classList.toggle('selected', c.classList.contains(note.color));
-                        });
-                        
-                        document.getElementById('noteModal').classList.add('active');
-                    }
-                });
-            });
-        }
-
-        // Close modal
-        function closeModal() {
-            document.getElementById('noteModal').classList.remove('active');
-            currentNote = null;
-        }
-
-        // Save note
-        async function saveNote() {
-            const title = document.getElementById('noteTitle').value.trim();
-            const content = document.getElementById('noteContent').value.trim();
-            const color = document.querySelector('.color-option.selected').classList[1];
-            const tags = document.getElementById('noteTags').value
-                .split(',')
-                .map(t => t.trim())
-                .filter(t => t);
-
-            if (!title) {
-                alert('Please enter a title');
-                return;
-            }
-
-            const noteData = { title, content, color, tags };
-
-            try {
-                if (currentNote) {
-                    // Update
-                    await fetch(`${API_BASE}/notes/${currentNote.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(noteData),
-                    });
-                } else {
-                    // Create
-                    await fetch(`${API_BASE}/notes`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(noteData),
-                    });
-                }
-                closeModal();
-                loadNotes();
-            } catch (error) {
-                alert('Failed to save note: ' + error.message);
-            }
-        }
-
-        // Delete note
-        async function deleteNote() {
-            if (!currentNote || !confirm('Delete this note?')) return;
-
-            try {
-                await fetch(`${API_BASE}/notes/${currentNote.id}`, { method: 'DELETE' });
-                closeModal();
-                loadNotes();
-            } catch (error) {
-                alert('Failed to delete note: ' + error.message);
-            }
-        }
-
-        // Sync notes
-        async function syncNotes() {
-            const btn = document.getElementById('syncBtn');
-            const text = document.getElementById('syncText');
-            btn.disabled = true;
-            btn.classList.add('syncing');
-            text.innerHTML = '<span class="spinner"></span>';
-
-            try {
-                await fetch(`${API_BASE}/sync`, { method: 'POST' });
-                loadNotes();
-            } catch (error) {
-                alert('Sync failed: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('syncing');
-                text.textContent = 'Sync with Notion';
-            }
-        }
-
-        // Helper: Escape HTML
-        function escapeHtml(text) {
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        // Initialize
-        initColorPicker();
-        loadNotes();
-        setInterval(loadNotes, 5000); // Refresh every 5 seconds
+      (function() {
+        var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'alfred-dark' : 'alfred-light';
+        document.documentElement.setAttribute('data-theme', theme);
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          document.documentElement.setAttribute('data-theme', e.matches ? 'alfred-dark' : 'alfred-light');
+        });
+      })();
     </script>
-</body>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <div id="root"></div>
+    <script src="bundle.js"></script>
+  </body>
 </html>
