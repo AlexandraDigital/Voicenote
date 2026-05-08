@@ -1,0 +1,22 @@
+{
+  "name": "voicenote-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Notion ↔ Cloudflare sync for mobile notes app",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler publish --compatibility-date 2024-02-15"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.56.0"
+  },
+  "keywords": [
+    "notion",
+    "cloudflare",
+    "worker",
+    "sync",
+    "mobile"
+  ]
+}

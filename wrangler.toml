@@ -1,0 +1,24 @@
+name = "voicenote-worker"
+main = "src/worker.js"
+compatibility_date = "2024-02-15"
+
+# KV namespace — create with:
+# wrangler kv:namespace create NOTES_KV
+# then paste the id below
+kv_namespaces = [
+  { binding = "NOTES_KV", id = "YOUR_KV_NAMESPACE_ID" }
+]
+
+# Secrets — set via CLI (never put real keys here):
+#   wrangler secret put NOTION_API_KEY
+#   wrangler secret put NOTION_DATABASE_ID
+#   → paste: b9d4ace5dead40a6b4f577cf0b1881ed
+[vars]
+APP_NAME = "VoiceNotes"
+
+[env.production]
+name = "voicenote-worker"
+route = { pattern = "YOUR_WORKER_SUBDOMAIN.workers.dev/*", zone_id = "" }
+kv_namespaces = [
+  { binding = "NOTES_KV", id = "YOUR_KV_NAMESPACE_ID" }
+]
