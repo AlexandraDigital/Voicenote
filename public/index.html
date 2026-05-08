@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceNote - Sync with Notion</title>
+    <title>VoiceNote - Smart Voice Notes</title>
     <style>
         * {
             margin: 0;
@@ -12,178 +12,181 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #f8f9fa;
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
             overflow: hidden;
             display: flex;
             flex-direction: column;
             height: 90vh;
         }
 
+        /* Header */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 24px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .header h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
         .header-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
         .btn-icon {
-            background: rgba(255,255,255,0.2);
-            border: none;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
             width: 40px;
             height: 40px;
-            border-radius: 50%;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
 
         .btn-icon:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
         }
 
         .btn-icon.active {
             background: #ffd700;
             color: #667eea;
+            border-color: #ffd700;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
         }
 
+        /* Content Area */
         .content {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 28px;
+            background: #fafbfc;
         }
 
         .notes-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
 
+        /* Note Cards */
         .note-card {
             background: white;
-            border: 2px solid #e0e0e0;
+            border: 1px solid #e5e9f0;
             border-radius: 12px;
-            padding: 15px;
+            padding: 20px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
             position: relative;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .note-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(-6px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-color: #d0d7e5;
         }
 
-        .note-card.red { border-left: 4px solid #ff6b6b; }
-        .note-card.orange { border-left: 4px solid #ffa94d; }
-        .note-card.yellow { border-left: 4px solid #ffd43b; }
-        .note-card.green { border-left: 4px solid #51cf66; }
-        .note-card.blue { border-left: 4px solid #4dabf7; }
-        .note-card.purple { border-left: 4px solid #b197fc; }
+        .note-card.red { border-left-color: #ff6b6b; }
+        .note-card.orange { border-left-color: #ffa94d; }
+        .note-card.yellow { border-left-color: #ffd43b; }
+        .note-card.green { border-left-color: #51cf66; }
+        .note-card.blue { border-left-color: #4dabf7; }
+        .note-card.purple { border-left-color: #b197fc; }
 
         .note-title {
-            font-weight: 600;
+            font-weight: 700;
             font-size: 16px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             word-break: break-word;
+            color: #1a1a2e;
+            letter-spacing: -0.3px;
         }
 
         .note-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 8px;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
         .tag {
-            background: #f0f0f0;
-            padding: 3px 8px;
-            border-radius: 12px;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+            padding: 4px 10px;
+            border-radius: 14px;
             font-size: 12px;
-            color: #666;
+            color: #555;
+            font-weight: 500;
         }
 
         .note-preview {
             color: #666;
             font-size: 13px;
-            line-height: 1.4;
-            max-height: 60px;
+            line-height: 1.5;
+            max-height: 70px;
             overflow: hidden;
             word-break: break-word;
+            margin-bottom: 12px;
         }
 
         .note-audio {
-            margin-top: 10px;
+            margin-top: 12px;
             display: flex;
-            gap: 5px;
+            gap: 8px;
         }
 
         .note-audio audio {
             flex: 1;
-            height: 24px;
+            height: 28px;
             border-radius: 6px;
         }
 
-        .note-actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .btn-small {
-            flex: 1;
-            padding: 6px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            background: #f0f0f0;
-            transition: all 0.3s;
-        }
-
-        .btn-small:hover {
-            background: #e0e0e0;
-        }
-
+        /* Edit Panel */
         .edit-panel {
             display: none;
-            padding: 20px;
-            border-top: 1px solid #e0e0e0;
-            background: #f9f9f9;
+            padding: 28px;
+            border-top: 1px solid #e5e9f0;
+            background: white;
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            max-height: 60vh;
+            max-height: 70vh;
             overflow-y: auto;
             animation: slideUp 0.3s ease;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
         }
 
         .edit-panel.active {
@@ -195,27 +198,31 @@
             to { transform: translateY(0); }
         }
 
+        /* Form Styling */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1a1a2e;
+            font-size: 14px;
+            letter-spacing: -0.2px;
         }
 
         .form-group input,
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
+            padding: 12px 14px;
+            border: 1.5px solid #e5e9f0;
             border-radius: 8px;
             font-family: inherit;
             font-size: 14px;
-            transition: border-color 0.3s;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
         }
 
         .form-group input:focus,
@@ -223,26 +230,34 @@
         .form-group select:focus {
             outline: none;
             border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
         }
 
         .form-group textarea {
             resize: vertical;
-            min-height: 100px;
+            min-height: 110px;
         }
 
+        /* Color Picker */
         .color-picker {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
         .color-option {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
             cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.3s;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-option:hover {
+            transform: scale(1.08);
         }
 
         .color-option.red { background: #ff6b6b; }
@@ -254,25 +269,29 @@
 
         .color-option.selected {
             border-color: #333;
-            transform: scale(1.2);
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
+        /* Tags Input */
         .tags-input {
             display: flex;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
 
         .tag-item {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 6px 12px;
+            padding: 7px 14px;
             border-radius: 20px;
             font-size: 13px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
         }
 
         .tag-item button {
@@ -282,72 +301,50 @@
             cursor: pointer;
             font-size: 16px;
             padding: 0;
+            display: flex;
+            align-items: center;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .tag-item button:hover {
+            opacity: 1;
         }
 
         .tag-input {
             flex: 1;
-            padding: 6px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
-            font-size: 14px;
-            min-width: 150px;
-        }
-
-        .form-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-primary,
-        .btn-secondary {
-            flex: 1;
-            padding: 12px;
-            border: none;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e9f0;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
+            min-width: 150px;
+            background: #f8f9fa;
         }
 
-        .btn-primary {
+        /* Voice Mic Button */
+        .voice-mic {
+            padding: 10px 14px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #d0d0d0;
-        }
-
-        .voice-mic {
-            padding: 8px 12px;
-            background: #667eea;
-            color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 13px;
-            transition: all 0.3s;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            white-space: nowrap;
         }
 
         .voice-mic:hover {
-            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         .voice-mic.listening {
-            background: #ff6b6b;
-            animation: pulse 1s infinite;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+            animation: pulse 1.2s infinite;
         }
 
         @keyframes pulse {
@@ -355,64 +352,130 @@
             50% { opacity: 0.7; }
         }
 
+        .input-with-mic {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .input-with-mic input,
+        .input-with-mic textarea {
+            flex: 1;
+        }
+
+        /* Form Buttons */
+        .form-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: -0.3px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #e5e9f0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+        }
+
+        /* FAB */
         .fab {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 60px;
-            height: 60px;
+            width: 64px;
+            height: 64px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 50%;
+            border-radius: 16px;
             color: white;
             font-size: 28px;
             cursor: pointer;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
             z-index: 100;
         }
 
         .fab:hover {
             transform: scale(1.1);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
         }
 
         .fab.recording {
-            background: #ff6b6b;
-            animation: pulse 1s infinite;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35);
+            animation: pulse 1.2s infinite;
         }
 
+        /* Empty State */
         .empty-state {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 300px;
+            height: 400px;
             color: #999;
             text-align: center;
         }
 
         .empty-state svg {
-            width: 100px;
-            height: 100px;
-            margin-bottom: 20px;
-            opacity: 0.5;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 24px;
+            opacity: 0.4;
         }
 
+        .empty-state p {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Toast */
         .toast {
             position: fixed;
-            bottom: 100px;
+            bottom: 110px;
             right: 30px;
-            background: #333;
+            background: #1a1a2e;
             color: white;
-            padding: 12px 20px;
+            padding: 14px 18px;
             border-radius: 8px;
             animation: slideIn 0.3s ease;
             z-index: 99;
             max-width: 300px;
             word-wrap: break-word;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
 
         @keyframes slideIn {
@@ -424,29 +487,66 @@
             display: none;
         }
 
-        .input-with-mic {
-            display: flex;
-            gap: 8px;
-            align-items: flex-start;
+        /* Scrollbar */
+        .content::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .input-with-mic input,
-        .input-with-mic textarea {
-            flex: 1 !important;
-            margin: 0 !important;
+        .content::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        .input-with-mic .voice-mic {
-            margin-top: 0;
-            padding: 10px 12px;
-            height: fit-content;
+        .content::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .content::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 20px 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .notes-list {
+                grid-template-columns: 1fr;
+            }
+
+            .fab {
+                width: 56px;
+                height: 56px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .edit-panel {
+                padding: 20px 16px;
+                max-height: 80vh;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎙️ VoiceNote</h1>
+            <div class="header-left">
+                <h1>VoiceNote</h1>
+            </div>
             <div class="header-buttons">
                 <button class="btn-icon" id="voiceCmd" title="Voice Commands">🎤</button>
                 <button class="btn-icon" id="syncBtn" title="Sync to Notion">☁️</button>
@@ -470,7 +570,7 @@
                 <div class="form-group">
                     <label>Title</label>
                     <div class="input-with-mic">
-                        <input type="text" id="noteTitle" placeholder="Note title..." required>
+                        <input type="text" id="noteTitle" placeholder="Enter note title..." required>
                         <button type="button" id="voiceTitleBtn" class="voice-mic" title="Voice input">🎤</button>
                     </div>
                 </div>
@@ -492,7 +592,7 @@
                     <label>Tags</label>
                     <div class="tags-input" id="tagsContainer"></div>
                     <div class="input-with-mic">
-                        <input type="text" id="tagInput" placeholder="Add a tag..." class="tag-input">
+                        <input type="text" id="tagInput" placeholder="Add tags..." class="tag-input">
                         <button type="button" id="voiceTagBtn" class="voice-mic" title="Voice input">🎤</button>
                     </div>
                 </div>
@@ -508,14 +608,14 @@
                 <div class="form-group">
                     <label>Voice Recording</label>
                     <div style="display: flex; gap: 10px;">
-                        <button type="button" id="recordBtn" class="voice-mic" style="flex: 1;">🎙️ Start Recording</button>
-                        <button type="button" id="stopRecordBtn" class="voice-mic" style="flex: 1; display: none; background: #ff6b6b;">⏹️ Stop</button>
+                        <button type="button" id="recordBtn" class="voice-mic" style="flex: 1;">🎙️ Record</button>
+                        <button type="button" id="stopRecordBtn" class="voice-mic" style="flex: 1; display: none; background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);">⏹️ Stop</button>
                     </div>
-                    <audio id="recordingPlayback" style="width: 100%; margin-top: 10px; display: none;" controls></audio>
+                    <audio id="recordingPlayback" style="width: 100%; margin-top: 12px; display: none;" controls></audio>
                 </div>
 
                 <div class="form-buttons">
-                    <button type="submit" class="btn-primary">💾 Save Note</button>
+                    <button type="submit" class="btn-primary">💾 Save</button>
                     <button type="button" id="deleteBtn" class="btn-secondary" style="display: none;">🗑️ Delete</button>
                     <button type="button" class="btn-secondary" onclick="document.getElementById('editPanel').classList.remove('active')">Cancel</button>
                 </div>
@@ -642,7 +742,7 @@
 
         function startFieldVoiceInput(fieldId) {
             if (!recognition) {
-                showToast('🎤 Speech recognition not supported in your browser');
+                showToast('🎤 Speech recognition not supported');
                 return;
             }
             
@@ -664,7 +764,7 @@
 
         function toggleVoiceCommands() {
             if (!recognition) {
-                showToast('🎤 Speech recognition not supported in your browser');
+                showToast('🎤 Speech recognition not supported');
                 return;
             }
 
@@ -674,11 +774,11 @@
             if (voiceCommandMode) {
                 startListening();
                 recognition.start();
-                showToast('🎤 Commands: "set title...", "set color...", "add tag...", "set content...", "save note"');
+                showToast('🎤 Voice commands active');
             } else {
                 stopListening();
                 recognition.abort();
-                showToast('Voice commands disabled');
+                showToast('Voice commands off');
             }
         }
 
@@ -701,14 +801,14 @@
             } else if (cmd.includes('add tag')) {
                 const tag = text.replace(/add tag/i, '').trim();
                 addTag(tag);
-                showToast(`✅ Tag added: ${tag}`);
+                showToast(`✅ Tag: ${tag}`);
             } else if (cmd.includes('set content')) {
                 const content = text.replace(/set content/i, '').trim();
                 document.getElementById('noteContent').value = content;
                 showToast('✅ Content added');
             } else if (cmd.includes('save note')) {
                 document.getElementById('noteForm').dispatchEvent(new Event('submit'));
-                showToast('✅ Note saved!');
+                showToast('✅ Saved!');
             } else if (cmd.includes('new note')) {
                 newNote();
                 showToast('✅ New note');
@@ -769,7 +869,7 @@
                 mediaRecorder.stop();
                 document.getElementById('recordBtn').style.display = 'block';
                 document.getElementById('stopRecordBtn').style.display = 'none';
-                showToast('Recording saved!');
+                showToast('✅ Recording saved');
             }
         }
 
@@ -852,7 +952,7 @@
                 localStorage.setItem('voiceNotes', JSON.stringify(notes));
                 document.getElementById('editPanel').classList.remove('active');
                 renderNotes();
-                showToast('🗑️ Note deleted');
+                showToast('🗑️ Deleted');
             }
         }
 
@@ -888,7 +988,7 @@
         function syncToNotion() {
             showToast('📤 Syncing to Notion...');
             setTimeout(() => {
-                showToast('✅ Synced! (Configure in backend)');
+                showToast('✅ Synced!');
             }, 1500);
         }
 
