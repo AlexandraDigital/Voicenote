@@ -1,0 +1,14 @@
+name = "voicenote-worker"
+main = "src/worker.js"
+compatibility_date = "2024-02-15"
+
+kv_namespaces = [
+  { binding = "NOTES_KV", id = "795d3c717f0b4e99b933c3714cbdf547" }
+]
+
+# Secrets set in Cloudflare dashboard → Worker → Settings → Variables → Secrets:
+#   NOTION_API_KEY     → your ntn_... token
+#   NOTION_DATABASE_ID → b9d4ace5dead40a6b4f577cf0b1881ed
+
+[vars]
+APP_NAME = "VoiceNotes"
