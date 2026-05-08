@@ -127,11 +127,17 @@ function makeNote(data, existingId = null) {
 }
 
 async function allNotes(env) {
+  if (!env.NOTES_KV) throw new Error('Missing NOTES_KV binding.');
+
   const { keys } = await env.NOTES_KV.list();
   const notes = [];
   for (const k of keys) {
-    const n = await env.NOTES_KV.get(k.name, 'json');
-    if (n) notes.push({ ...n, id: k.name });
+    try {
+      const n = await env.NOTES_KV.get(k.name, 'json');
+      if (n && typeof n === 'object') notes.push({ ...n, id: k.name });
+    } catch (e) {
+      console.error(`Skipping invalid note in KV key ${k.name}:`, e);
+    }
   }
   return notes;
 }
@@ -154,7 +160,9 @@ async function getNote(id, env) {
 
 async function createNote(request, env) {
   const data = await request.json();
-  const note = makeNote(data);
+  const noteId = data.id ? String(data.id) : null;
+  const existing = noteId ? await env.NOTES_KV.get(noteId, 'json') : null;
+  const note = makeNote({ ...existing, ...data, notionId: data.notionId || existing?.notionId }, noteId);
   await env.NOTES_KV.put(note.id, JSON.stringify(note));
   return json(note, 201);
 }
@@ -239,7 +247,13 @@ async function syncPush(env) {
           results.updated++;
           continue;
         }
-        // If 404/archived, fall through to create
+        if (res.status !== 404) {
+          const e = await res.text();
+          results.failed++;
+          results.errors.push(`${note.id}: ${e.slice(0, 200)}`);
+          continue;
+        }
+        // If 404/archived, fall through to create.
       }
 
       const res = await fetch(`${NOTION_API}/pages`, {
@@ -384,4 +398,4 @@ async function watchQuickAdd(request, env) {
   }
 
   return json({ note, notion: notionResult }, 201);
-        }
+}
