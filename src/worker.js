@@ -194,7 +194,7 @@ function noteToNotionBody(note, databaseId) {
   return {
     parent: { database_id: databaseId },
     properties: {
-      Title: { title: [{ text: { content: note.title || 'Untitled' } }] },
+      Name: { title: [{ text: { content: note.title || 'Untitled' } }] },
       Content: { rich_text: [{ text: { content: (note.content || '').slice(0, 2000) } }] },
       Color: { rich_text: [{ text: { content: note.color || '#fff7ed' } }] },
       Tags: { multi_select: (note.tags || []).map(t => ({ name: t })) },
