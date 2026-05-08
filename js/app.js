@@ -455,13 +455,25 @@
       };
     }
 
+    async function workerErrorMessage(res, fallback) {
+      try {
+        const text = await res.text();
+        if (!text) return fallback;
+        const data = JSON.parse(text);
+        return data.error || text.slice(0, 160);
+      } catch (e) {
+        return fallback;
+      }
+    }
+
     async function pushLocalToWorker() {
       for (const note of notes) {
-        await fetch(`${WORKER_URL}/notes`, {
+        const res = await fetch(`${WORKER_URL}/notes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(noteToWorkerFormat(note)),
         });
+        if (!res.ok) throw new Error(await workerErrorMessage(res, "Worker note save failed."));
       }
     }
 
@@ -474,11 +486,11 @@
           const d = await res.json();
           showStatus(`✅ ${d.pushed} pushed, ${d.updated} updated to Notion!`);
         } else {
-          showStatus("❌ Push to Notion failed.");
+          showStatus(`❌ ${await workerErrorMessage(res, "Push to Notion failed.")}`);
         }
       } catch (err) {
         console.error("Export error:", err);
-        showStatus("❌ Could not reach worker.");
+        showStatus(`❌ ${err.message || "Could not reach worker."}`);
       }
     }
 
@@ -486,7 +498,7 @@
       try {
         showStatus("📥 Pulling from Notion...");
         const res = await fetch(`${WORKER_URL}/sync/pull`, { method: "POST" });
-        if (!res.ok) { showStatus("❌ Pull from Notion failed."); return; }
+        if (!res.ok) { showStatus(`❌ ${await workerErrorMessage(res, "Pull from Notion failed.")}`); return; }
         const d = await res.json();
         const notesRes = await fetch(`${WORKER_URL}/notes`);
         if (notesRes.ok) {
@@ -497,7 +509,7 @@
         }
       } catch (err) {
         console.error("Import error:", err);
-        showStatus("❌ Could not reach worker.");
+        showStatus(`❌ ${err.message || "Could not reach worker."}`);
       }
     }
 
@@ -517,11 +529,11 @@
           const pushed = (d.push?.pushed || 0) + (d.push?.updated || 0);
           showStatus(`✅ Synced! ${pushed} pushed, ${d.pull?.pulled || 0} pulled`);
         } else {
-          showStatus("❌ Sync failed.");
+          showStatus(`❌ ${await workerErrorMessage(res, "Sync failed.")}`);
         }
       } catch (err) {
         console.error("Sync error:", err);
-        showStatus("❌ Could not reach worker.");
+        showStatus(`❌ ${err.message || "Could not reach worker."}`);
       }
     }
 
