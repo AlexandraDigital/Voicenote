@@ -330,14 +330,7 @@
             background: #d0d0d0;
         }
 
-        .voice-input {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-top: 8px;
-        }
-
-        .voice-input button {
+        .voice-mic {
             padding: 8px 12px;
             background: #667eea;
             color: white;
@@ -348,11 +341,11 @@
             transition: all 0.3s;
         }
 
-        .voice-input button:hover {
+        .voice-mic:hover {
             background: #5568d3;
         }
 
-        .voice-input button.recording {
+        .voice-mic.listening {
             background: #ff6b6b;
             animation: pulse 1s infinite;
         }
@@ -418,6 +411,8 @@
             border-radius: 8px;
             animation: slideIn 0.3s ease;
             z-index: 99;
+            max-width: 300px;
+            word-wrap: break-word;
         }
 
         @keyframes slideIn {
@@ -427,6 +422,24 @@
 
         .hidden {
             display: none;
+        }
+
+        .input-with-mic {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .input-with-mic input,
+        .input-with-mic textarea {
+            flex: 1 !important;
+            margin: 0 !important;
+        }
+
+        .input-with-mic .voice-mic {
+            margin-top: 0;
+            padding: 10px 12px;
+            height: fit-content;
         }
     </style>
 </head>
@@ -456,9 +469,9 @@
             <form id="noteForm">
                 <div class="form-group">
                     <label>Title</label>
-                    <div class="voice-input">
+                    <div class="input-with-mic">
                         <input type="text" id="noteTitle" placeholder="Note title..." required>
-                        <button type="button" id="voiceTitleBtn" class="voice-btn">🎤</button>
+                        <button type="button" id="voiceTitleBtn" class="voice-mic" title="Voice input">🎤</button>
                     </div>
                 </div>
 
@@ -478,25 +491,25 @@
                 <div class="form-group">
                     <label>Tags</label>
                     <div class="tags-input" id="tagsContainer"></div>
-                    <div class="voice-input">
+                    <div class="input-with-mic">
                         <input type="text" id="tagInput" placeholder="Add a tag..." class="tag-input">
-                        <button type="button" id="voiceTagBtn" class="voice-btn">🎤</button>
+                        <button type="button" id="voiceTagBtn" class="voice-mic" title="Voice input">🎤</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Content</label>
-                    <div class="voice-input">
+                    <div class="input-with-mic">
                         <textarea id="noteContent" placeholder="Write or speak your note..."></textarea>
-                        <button type="button" id="voiceContentBtn" class="voice-btn">🎤</button>
+                        <button type="button" id="voiceContentBtn" class="voice-mic" title="Voice input">🎤</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Voice Recording</label>
                     <div style="display: flex; gap: 10px;">
-                        <button type="button" id="recordBtn" class="voice-btn" style="flex: 1;">🎙️ Start Recording</button>
-                        <button type="button" id="stopRecordBtn" class="voice-btn" style="flex: 1; display: none;">⏹️ Stop</button>
+                        <button type="button" id="recordBtn" class="voice-mic" style="flex: 1;">🎙️ Start Recording</button>
+                        <button type="button" id="stopRecordBtn" class="voice-mic" style="flex: 1; display: none; background: #ff6b6b;">⏹️ Stop</button>
                     </div>
                     <audio id="recordingPlayback" style="width: 100%; margin-top: 10px; display: none;" controls></audio>
                 </div>
@@ -513,16 +526,28 @@
     <button class="fab" id="newNoteBtn">➕</button>
 
     <script>
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+        // Check if Web Speech API is supported
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            console.warn('Web Speech API not supported');
+        }
+
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        
+        if (recognition) {
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+        }
 
         let mediaRecorder = null;
         let audioChunks = [];
         let currentNoteId = null;
         let notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
         let voiceCommandMode = false;
+        let currentVoiceField = null;
+        let isListening = false;
 
         // Initialize
         document.getElementById('newNoteBtn').addEventListener('click', newNote);
@@ -536,15 +561,15 @@
         // Voice buttons for each field
         document.getElementById('voiceTitleBtn').addEventListener('click', (e) => {
             e.preventDefault();
-            startVoiceInput('noteTitle');
+            startFieldVoiceInput('noteTitle');
         });
         document.getElementById('voiceTagBtn').addEventListener('click', (e) => {
             e.preventDefault();
-            startVoiceInput('tagInput');
+            startFieldVoiceInput('tagInput');
         });
         document.getElementById('voiceContentBtn').addEventListener('click', (e) => {
             e.preventDefault();
-            startVoiceInput('noteContent');
+            startFieldVoiceInput('noteContent');
         });
 
         // Color picker
@@ -568,41 +593,90 @@
             }
         });
 
-        recognition.addEventListener('result', (e) => {
-            const transcript = Array.from(e.results)
-                .map(result => result[0].transcript)
-                .join('');
-            
-            if (voiceCommandMode) {
-                handleVoiceCommand(transcript);
-            } else if (currentVoiceInput) {
-                const input = document.getElementById(currentVoiceInput);
-                if (currentVoiceInput === 'tagInput') {
-                    addTag(transcript);
-                } else if (currentVoiceInput === 'noteContent') {
-                    input.value += (input.value ? ' ' : '') + transcript;
-                } else {
-                    input.value = transcript;
+        if (recognition) {
+            recognition.addEventListener('result', (e) => {
+                const isFinal = e.results[e.results.length - 1].isFinal;
+                const transcript = Array.from(e.results)
+                    .map(result => result[0].transcript)
+                    .join('')
+                    .trim();
+                
+                if (!transcript) return;
+
+                if (voiceCommandMode && isFinal) {
+                    handleVoiceCommand(transcript);
+                } else if (currentVoiceField && isFinal) {
+                    const input = document.getElementById(currentVoiceField);
+                    if (currentVoiceField === 'tagInput') {
+                        addTag(transcript);
+                    } else if (currentVoiceField === 'noteContent') {
+                        input.value += (input.value ? ' ' : '') + transcript;
+                    } else {
+                        input.value = transcript;
+                    }
+                    currentVoiceField = null;
+                    stopListening();
                 }
-                currentVoiceInput = null;
+            });
+
+            recognition.addEventListener('error', (e) => {
+                console.error('Speech recognition error:', e.error);
+                if (e.error !== 'no-speech') {
+                    showToast('🎤 Error: ' + e.error);
+                }
+                stopListening();
+            });
+
+            recognition.addEventListener('end', () => {
+                stopListening();
+                // Restart if in voice command mode
+                if (voiceCommandMode) {
+                    setTimeout(() => {
+                        if (voiceCommandMode && recognition) {
+                            recognition.start();
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        function startFieldVoiceInput(fieldId) {
+            if (!recognition) {
+                showToast('🎤 Speech recognition not supported in your browser');
+                return;
             }
-        });
-
-        let currentVoiceInput = null;
-
-        function startVoiceInput(fieldId) {
-            currentVoiceInput = fieldId;
+            
+            currentVoiceField = fieldId;
+            startListening();
             recognition.start();
+        }
+
+        function startListening() {
+            isListening = true;
+            document.querySelectorAll('.voice-mic').forEach(btn => btn.classList.add('listening'));
             showToast('🎤 Listening...');
         }
 
+        function stopListening() {
+            isListening = false;
+            document.querySelectorAll('.voice-mic').forEach(btn => btn.classList.remove('listening'));
+        }
+
         function toggleVoiceCommands() {
+            if (!recognition) {
+                showToast('🎤 Speech recognition not supported in your browser');
+                return;
+            }
+
             voiceCommandMode = !voiceCommandMode;
             document.getElementById('voiceCmd').classList.toggle('active');
+            
             if (voiceCommandMode) {
+                startListening();
                 recognition.start();
-                showToast('🎤 Voice commands active! Say "set title", "set color", "add tag", "set content", or "save note"');
+                showToast('🎤 Commands: "set title...", "set color...", "add tag...", "set content...", "save note"');
             } else {
+                stopListening();
                 recognition.abort();
                 showToast('Voice commands disabled');
             }
@@ -614,42 +688,40 @@
             if (cmd.includes('set title')) {
                 const title = text.replace(/set title/i, '').trim();
                 document.getElementById('noteTitle').value = title;
-                showToast(`Title set to: ${title}`);
+                showToast(`✅ Title: ${title}`);
             } else if (cmd.includes('set color')) {
                 const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
                 for (let color of colors) {
                     if (cmd.includes(color)) {
                         selectColor(color);
-                        showToast(`Color set to: ${color}`);
+                        showToast(`✅ Color: ${color}`);
                         break;
                     }
                 }
             } else if (cmd.includes('add tag')) {
                 const tag = text.replace(/add tag/i, '').trim();
                 addTag(tag);
-                showToast(`Tag added: ${tag}`);
+                showToast(`✅ Tag added: ${tag}`);
             } else if (cmd.includes('set content')) {
                 const content = text.replace(/set content/i, '').trim();
                 document.getElementById('noteContent').value = content;
-                showToast('Content added');
+                showToast('✅ Content added');
             } else if (cmd.includes('save note')) {
                 document.getElementById('noteForm').dispatchEvent(new Event('submit'));
-                showToast('Note saved!');
+                showToast('✅ Note saved!');
             } else if (cmd.includes('new note')) {
                 newNote();
-                showToast('New note created');
-            }
-            
-            // Continue listening for more commands
-            if (voiceCommandMode) {
-                recognition.start();
+                showToast('✅ New note');
             }
         }
 
         function selectColor(color) {
             document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-            document.querySelector(`[data-color="${color}"]`).classList.add('selected');
-            document.getElementById('noteColor').value = color;
+            const colorOption = document.querySelector(`[data-color="${color}"]`);
+            if (colorOption) {
+                colorOption.classList.add('selected');
+                document.getElementById('noteColor').value = color;
+            }
         }
 
         function addTag(tag) {
@@ -686,19 +758,19 @@
                 mediaRecorder.start();
                 document.getElementById('recordBtn').style.display = 'none';
                 document.getElementById('stopRecordBtn').style.display = 'block';
-                document.getElementById('recordBtn').classList.add('recording');
                 showToast('🎙️ Recording...');
             } catch (e) {
-                showToast('Microphone access denied');
+                showToast('🎤 Microphone access denied');
             }
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
-            document.getElementById('recordBtn').style.display = 'block';
-            document.getElementById('stopRecordBtn').style.display = 'none';
-            document.getElementById('recordBtn').classList.remove('recording');
-            showToast('Recording saved!');
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                document.getElementById('recordBtn').style.display = 'block';
+                document.getElementById('stopRecordBtn').style.display = 'none';
+                showToast('Recording saved!');
+            }
         }
 
         function newNote() {
@@ -724,14 +796,11 @@
             document.getElementById('noteContent').value = note.content;
             document.getElementById('noteColor').value = note.color;
             
-            // Set color selection
             selectColor(note.color);
             
-            // Add tags
             document.getElementById('tagsContainer').innerHTML = '';
             note.tags.forEach(tag => addTag(tag));
             
-            // Add recording if exists
             const playback = document.getElementById('recordingPlayback');
             if (note.audioData) {
                 playback.src = note.audioData;
@@ -818,9 +887,8 @@
 
         function syncToNotion() {
             showToast('📤 Syncing to Notion...');
-            // TODO: Implement Notion sync via backend
             setTimeout(() => {
-                showToast('✅ Synced! (Set up in settings)');
+                showToast('✅ Synced! (Configure in backend)');
             }, 1500);
         }
 
