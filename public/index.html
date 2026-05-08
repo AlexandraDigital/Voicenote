@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceNote - Smart Voice Notes</title>
+    <title>VoiceNotes</title>
     <style>
         * {
             margin: 0;
@@ -12,185 +12,348 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background: #f8f9fa;
-            min-height: 100vh;
-            padding: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+            overflow: hidden;
         }
 
         .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 90vh;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         /* Header */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 24px 28px;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
         .header h1 {
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            font-size: 24px;
+            font-weight: 600;
         }
 
         .header-buttons {
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
 
         .btn-icon {
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255,255,255,0.2);
+            border: none;
             color: white;
             width: 40px;
             height: 40px;
-            border-radius: 8px;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
+            transition: all 0.3s;
         }
 
         .btn-icon:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
         }
 
         .btn-icon.active {
-            background: #ffd700;
-            color: #667eea;
-            border-color: #ffd700;
-            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+            background: rgba(255,255,255,0.4);
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
         }
 
-        /* Content Area */
+        /* Main Content */
         .content {
             flex: 1;
             overflow-y: auto;
-            padding: 28px;
-            background: #fafbfc;
+            padding: 16px;
+            background: #f5f5f5;
         }
 
-        .notes-list {
+        /* Notes Grid */
+        .notes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        /* Note Cards */
         .note-card {
             background: white;
-            border: 1px solid #e5e9f0;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
             position: relative;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .note-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--color, #667eea);
         }
 
         .note-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-            border-color: #d0d7e5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
         }
 
-        .note-card.red { border-left-color: #ff6b6b; }
-        .note-card.orange { border-left-color: #ffa94d; }
-        .note-card.yellow { border-left-color: #ffd43b; }
-        .note-card.green { border-left-color: #51cf66; }
-        .note-card.blue { border-left-color: #4dabf7; }
-        .note-card.purple { border-left-color: #b197fc; }
+        .note-card.red { --color: #ef5350; }
+        .note-card.orange { --color: #ffa726; }
+        .note-card.yellow { --color: #fdd835; }
+        .note-card.green { --color: #66bb6a; }
+        .note-card.blue { --color: #42a5f5; }
+        .note-card.purple { --color: #ab47bc; }
 
         .note-title {
-            font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 10px;
-            word-break: break-word;
-            color: #1a1a2e;
-            letter-spacing: -0.3px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #222;
+            word-wrap: break-word;
         }
 
-        .note-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .tag {
-            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
-            padding: 4px 10px;
-            border-radius: 14px;
+        .note-content {
             font-size: 12px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .note-preview {
             color: #666;
-            font-size: 13px;
-            line-height: 1.5;
-            max-height: 70px;
-            overflow: hidden;
-            word-break: break-word;
-            margin-bottom: 12px;
-        }
-
-        .note-audio {
-            margin-top: 12px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .note-audio audio {
             flex: 1;
-            height: 28px;
-            border-radius: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
 
-        /* Edit Panel */
-        .edit-panel {
+        .note-meta {
+            font-size: 10px;
+            color: #999;
+            margin-top: 8px;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .note-tag {
+            background: var(--color, #667eea);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        /* Modal */
+        .modal {
             display: none;
-            padding: 28px;
-            border-top: 1px solid #e5e9f0;
-            background: white;
             position: fixed;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
-            max-height: 70vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
         }
 
-        .edit-panel.active {
+        .modal.active {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
             display: block;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-btn.red { background: #ef5350; }
+        .color-btn.orange { background: #ffa726; }
+        .color-btn.yellow { background: #fdd835; }
+        .color-btn.green { background: #66bb6a; }
+        .color-btn.blue { background: #42a5f5; }
+        .color-btn.purple { background: #ab47bc; }
+
+        .color-btn.selected {
+            border-color: #222;
+            transform: scale(1.15);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        .btn-danger {
+            background: #ef5350;
+            margin-top: 8px;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #222;
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #222;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0;
+            animation: slideInUp 0.3s forwards;
+            z-index: 999;
+        }
+
+        .toast.show {
+            animation: slideInUp 0.3s forwards, slideOutDown 0.3s 2.7s forwards;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes slideUp {
@@ -198,502 +361,204 @@
             to { transform: translateY(0); }
         }
 
-        /* Form Styling */
-        .form-group {
-            margin-bottom: 20px;
+        @keyframes slideInUp {
+            from { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
         }
 
-        .form-group label {
-            display: block;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #1a1a2e;
-            font-size: 14px;
-            letter-spacing: -0.2px;
+        @keyframes slideOutDown {
+            from { 
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            to { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
         }
 
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1.5px solid #e5e9f0;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            background: #f8f9fa;
+        /* Responsive */
+        @media (max-width: 768px) {
+            .notes-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
         }
 
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 110px;
-        }
-
-        /* Color Picker */
-        .color-picker {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .color-option {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .color-option:hover {
-            transform: scale(1.08);
-        }
-
-        .color-option.red { background: #ff6b6b; }
-        .color-option.orange { background: #ffa94d; }
-        .color-option.yellow { background: #ffd43b; }
-        .color-option.green { background: #51cf66; }
-        .color-option.blue { background: #4dabf7; }
-        .color-option.purple { background: #b197fc; }
-
-        .color-option.selected {
-            border-color: #333;
-            transform: scale(1.15);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Tags Input */
-        .tags-input {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .tag-item {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 7px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-weight: 500;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-        }
-
-        .tag-item button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .tag-item button:hover {
-            opacity: 1;
-        }
-
-        .tag-input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1.5px solid #e5e9f0;
-            border-radius: 8px;
-            font-size: 14px;
-            min-width: 150px;
-            background: #f8f9fa;
-        }
-
-        /* Voice Mic Button */
         .voice-mic {
-            padding: 10px 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
+            background: rgba(102,126,234,0.1);
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 8px 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-            white-space: nowrap;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin-top: 6px;
         }
 
         .voice-mic:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            background: rgba(102,126,234,0.2);
         }
 
         .voice-mic.listening {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
-            animation: pulse 1.2s infinite;
+            background: #667eea;
+            color: white;
+            animation: pulse 1s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(102,126,234,0); }
         }
 
-        .input-with-mic {
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
+        .syncing {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
-        .input-with-mic input,
-        .input-with-mic textarea {
-            flex: 1;
-        }
-
-        /* Form Buttons */
-        .form-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        .btn-primary,
-        .btn-secondary {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: -0.3px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-            border: 1px solid #e5e9f0;
-        }
-
-        .btn-secondary:hover {
-            background: #e8e8e8;
-            border-color: #d0d0d0;
-        }
-
-        /* FAB */
-        .fab {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 16px;
-            color: white;
-            font-size: 28px;
-            cursor: pointer;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            z-index: 100;
-        }
-
-        .fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
-        }
-
-        .fab.recording {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-            box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35);
-            animation: pulse 1.2s infinite;
-        }
-
-        /* Empty State */
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 400px;
+        .sync-status {
+            font-size: 12px;
             color: #999;
             text-align: center;
-        }
-
-        .empty-state svg {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 24px;
-            opacity: 0.4;
-        }
-
-        .empty-state p {
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 110px;
-            right: 30px;
-            background: #1a1a2e;
-            color: white;
-            padding: 14px 18px;
-            border-radius: 8px;
-            animation: slideIn 0.3s ease;
-            z-index: 99;
-            max-width: 300px;
-            word-wrap: break-word;
-            font-size: 13px;
-            font-weight: 500;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        /* Scrollbar */
-        .content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .content::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .content::-webkit-scrollbar-thumb {
-            background: #ddd;
-            border-radius: 3px;
-        }
-
-        .content::-webkit-scrollbar-thumb:hover {
-            background: #999;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                height: 100vh;
-                border-radius: 0;
-            }
-
-            .header {
-                padding: 20px 16px;
-            }
-
-            .header h1 {
-                font-size: 22px;
-            }
-
-            .content {
-                padding: 16px;
-            }
-
-            .notes-list {
-                grid-template-columns: 1fr;
-            }
-
-            .fab {
-                width: 56px;
-                height: 56px;
-                bottom: 20px;
-                right: 20px;
-            }
-
-            .edit-panel {
-                padding: 20px 16px;
-                max-height: 80vh;
-            }
+            padding: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <div class="header-left">
-                <h1>VoiceNote</h1>
-            </div>
+            <h1>📝 VoiceNotes</h1>
             <div class="header-buttons">
                 <button class="btn-icon" id="voiceCmd" title="Voice Commands">🎤</button>
                 <button class="btn-icon" id="syncBtn" title="Sync to Notion">☁️</button>
-                <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
             </div>
         </div>
 
+        <!-- Main Content -->
         <div class="content">
-            <div class="notes-list" id="notesList"></div>
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2"/>
-                    <path d="M50 35v30m-15-15h30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <p>No notes yet. Click + to create one!</p>
-            </div>
-        </div>
-
-        <div class="edit-panel" id="editPanel">
-            <form id="noteForm">
-                <div class="form-group">
-                    <label>Title</label>
-                    <div class="input-with-mic">
-                        <input type="text" id="noteTitle" placeholder="Enter note title..." required>
-                        <button type="button" id="voiceTitleBtn" class="voice-mic" title="Voice input">🎤</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Color</label>
-                    <div class="color-picker">
-                        <div class="color-option red" data-color="red"></div>
-                        <div class="color-option orange" data-color="orange"></div>
-                        <div class="color-option yellow" data-color="yellow"></div>
-                        <div class="color-option green" data-color="green"></div>
-                        <div class="color-option blue" data-color="blue"></div>
-                        <div class="color-option purple" data-color="purple"></div>
-                    </div>
-                    <input type="hidden" id="noteColor" value="blue">
-                </div>
-
-                <div class="form-group">
-                    <label>Tags</label>
-                    <div class="tags-input" id="tagsContainer"></div>
-                    <div class="input-with-mic">
-                        <input type="text" id="tagInput" placeholder="Add tags..." class="tag-input">
-                        <button type="button" id="voiceTagBtn" class="voice-mic" title="Voice input">🎤</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Content</label>
-                    <div class="input-with-mic">
-                        <textarea id="noteContent" placeholder="Write or speak your note..."></textarea>
-                        <button type="button" id="voiceContentBtn" class="voice-mic" title="Voice input">🎤</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Voice Recording</label>
-                    <div style="display: flex; gap: 10px;">
-                        <button type="button" id="recordBtn" class="voice-mic" style="flex: 1;">🎙️ Record</button>
-                        <button type="button" id="stopRecordBtn" class="voice-mic" style="flex: 1; display: none; background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);">⏹️ Stop</button>
-                    </div>
-                    <audio id="recordingPlayback" style="width: 100%; margin-top: 12px; display: none;" controls></audio>
-                </div>
-
-                <div class="form-buttons">
-                    <button type="submit" class="btn-primary">💾 Save</button>
-                    <button type="button" id="deleteBtn" class="btn-secondary" style="display: none;">🗑️ Delete</button>
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('editPanel').classList.remove('active')">Cancel</button>
-                </div>
-            </form>
+            <div class="sync-status" id="syncStatus"></div>
+            <div class="notes-grid" id="notesGrid"></div>
         </div>
     </div>
 
-    <button class="fab" id="newNoteBtn" style="font-size: 32px; font-weight: 300;">+</button>
+    <!-- FAB -->
+    <button class="fab" id="newNoteBtn">➕</button>
+
+    <!-- New/Edit Note Modal -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">New Note</h2>
+                <button class="btn-close" onclick="closeModal()">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label>Title</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="noteTitle" placeholder="Add a title...">
+                    <button class="voice-mic" onclick="startFieldVoiceInput('noteTitle')">🎤</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Color</label>
+                <div class="color-picker">
+                    <button class="color-btn red" data-color="red" onclick="selectColor('red')"></button>
+                    <button class="color-btn orange" data-color="orange" onclick="selectColor('orange')"></button>
+                    <button class="color-btn yellow" data-color="yellow" onclick="selectColor('yellow')"></button>
+                    <button class="color-btn green" data-color="green" onclick="selectColor('green')"></button>
+                    <button class="color-btn blue selected" data-color="blue" onclick="selectColor('blue')"></button>
+                    <button class="color-btn purple" data-color="purple" onclick="selectColor('purple')"></button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tags</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="tagInput" placeholder="Add tag...">
+                    <button class="voice-mic" onclick="startFieldVoiceInput('tagInput')">🎤</button>
+                </div>
+                <div id="tagsList" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Recording</label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="voice-mic" style="flex: 1;" id="recordBtn" onclick="toggleRecording()">🎙️ Record</button>
+                    <button class="voice-mic" id="playBtn" onclick="playRecording()" style="display: none;">▶️ Play</button>
+                </div>
+                <div id="recordingTime" style="font-size: 12px; color: #999; margin-top: 6px;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Content</label>
+                <div style="display: flex; gap: 8px; flex-direction: column;">
+                    <textarea id="noteContent" placeholder="Add content..."></textarea>
+                    <button class="voice-mic" onclick="startFieldVoiceInput('noteContent')">🎤 Voice to Text</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="saveNote()">Save Note</button>
+            <button class="btn-primary btn-danger" id="deleteBtn" onclick="deleteCurrentNote()" style="display: none;">Delete Note</button>
+            <button class="btn-primary btn-secondary" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
 
     <script>
-        // Check if Web Speech API is supported
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!SpeechRecognition) {
-            console.warn('Web Speech API not supported');
-        }
-
-        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-        
-        if (recognition) {
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-        }
-
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let currentNoteId = null;
         let notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
+        let currentNote = null;
+        let currentColor = 'blue';
+        let currentTags = [];
+        let isRecording = false;
+        let recordedAudio = null;
+        let mediaRecorder = null;
+        let startTime = null;
+        let timerInterval = null;
         let voiceCommandMode = false;
         let currentVoiceField = null;
         let isListening = false;
+        let recognition = null;
+
+        // Notion API config
+        const NOTION_CONFIG = {
+            databaseId: localStorage.getItem('notion_db_id') || '',
+            apiKey: localStorage.getItem('notion_api_key') || ''
+        };
 
         // Initialize
-        document.getElementById('newNoteBtn').addEventListener('click', newNote);
-        document.getElementById('syncBtn').addEventListener('click', syncToNotion);
-        document.getElementById('searchBtn').addEventListener('click', search);
-        document.getElementById('voiceCmd').addEventListener('click', toggleVoiceCommands);
-        document.getElementById('noteForm').addEventListener('submit', saveNote);
-        document.getElementById('recordBtn').addEventListener('click', startRecording);
-        document.getElementById('stopRecordBtn').addEventListener('click', stopRecording);
-
-        // Voice buttons for each field
-        document.getElementById('voiceTitleBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            startFieldVoiceInput('noteTitle');
-        });
-        document.getElementById('voiceTagBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            startFieldVoiceInput('tagInput');
-        });
-        document.getElementById('voiceContentBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            startFieldVoiceInput('noteContent');
+        window.addEventListener('load', () => {
+            renderNotes();
+            initSpeechRecognition();
+            setupVoiceCommandButton();
+            setupSyncButton();
+            setupRecording();
         });
 
-        // Color picker
-        document.querySelectorAll('.color-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-                document.getElementById('noteColor').value = this.dataset.color;
-            });
-        });
-
-        // Tag input
-        document.getElementById('tagInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const tag = e.target.value.trim();
-                if (tag) {
-                    addTag(tag);
-                    e.target.value = '';
-                }
+        // Speech Recognition
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                console.log('Speech Recognition not supported');
+                return;
             }
-        });
 
-        if (recognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.addEventListener('start', () => {
+                isListening = true;
+                document.querySelectorAll('.voice-mic, .btn-icon').forEach(btn => btn.classList.add('listening'));
+            });
+
             recognition.addEventListener('result', (e) => {
                 const isFinal = e.results[e.results.length - 1].isFinal;
                 const transcript = Array.from(e.results)
@@ -703,7 +568,7 @@
                 
                 if (!transcript) return;
 
-                // Handle field voice input (priority over voice commands)
+                // Handle field voice input (priority)
                 if (currentVoiceField) {
                     if (isFinal) {
                         const input = document.getElementById(currentVoiceField);
@@ -716,7 +581,7 @@
                             } else {
                                 input.value = transcript;
                             }
-                            showToast(`✅ ${transcript}`);
+                            showToast(`✅ "${transcript}"`);
                         }
                         currentVoiceField = null;
                         stopListening();
@@ -728,25 +593,14 @@
 
             recognition.addEventListener('error', (e) => {
                 console.error('Speech recognition error:', e.error);
-                if (e.error === 'network') {
-                    showToast('🎤 Network error - check your connection');
-                } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+                stopListening();
+                if (e.error !== 'no-speech' && e.error !== 'aborted') {
                     showToast('🎤 Error: ' + e.error);
                 }
-                stopListening();
-                currentVoiceField = null;
             });
 
             recognition.addEventListener('end', () => {
                 stopListening();
-                // Restart if in voice command mode
-                if (voiceCommandMode) {
-                    setTimeout(() => {
-                        if (voiceCommandMode && recognition) {
-                            recognition.start();
-                        }
-                    }, 100);
-                }
             });
         }
 
@@ -755,31 +609,24 @@
                 showToast('🎤 Speech recognition not supported');
                 return;
             }
-            
-            // Stop voice command mode if active
+
             if (voiceCommandMode) {
                 voiceCommandMode = false;
                 document.getElementById('voiceCmd').classList.remove('active');
                 recognition.abort();
             }
-            
+
             currentVoiceField = fieldId;
-            startListening();
-            
-            // Restart recognition for this field
-            setTimeout(() => {
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.log('Recognition already running');
-                }
-            }, 100);
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Recognition already running');
+            }
         }
 
         function startListening() {
             isListening = true;
             document.querySelectorAll('.voice-mic').forEach(btn => btn.classList.add('listening'));
-            showToast('🎤 Listening...');
         }
 
         function stopListening() {
@@ -788,104 +635,87 @@
             currentVoiceField = null;
         }
 
-        function toggleVoiceCommands() {
-            if (!recognition) {
-                showToast('🎤 Speech recognition not supported');
-                return;
-            }
-
-            voiceCommandMode = !voiceCommandMode;
-            document.getElementById('voiceCmd').classList.toggle('active');
-            
-            if (voiceCommandMode) {
-                startListening();
-                recognition.start();
-                showToast('🎤 Voice commands active');
-            } else {
-                stopListening();
-                recognition.abort();
-                showToast('Voice commands off');
-            }
-        }
-
-        function handleVoiceCommand(text) {
-            const cmd = text.toLowerCase();
-            
-            if (cmd.includes('set title')) {
-                const title = text.replace(/set title/i, '').trim();
-                document.getElementById('noteTitle').value = title;
-                showToast(`✅ Title: ${title}`);
-            } else if (cmd.includes('set color')) {
-                const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
-                for (let color of colors) {
-                    if (cmd.includes(color)) {
-                        selectColor(color);
-                        showToast(`✅ Color: ${color}`);
-                        break;
-                    }
+        function setupVoiceCommandButton() {
+            document.getElementById('voiceCmd').addEventListener('click', () => {
+                if (!recognition) {
+                    showToast('🎤 Speech recognition not supported');
+                    return;
                 }
-            } else if (cmd.includes('add tag')) {
-                const tag = text.replace(/add tag/i, '').trim();
-                addTag(tag);
-                showToast(`✅ Tag: ${tag}`);
-            } else if (cmd.includes('set content')) {
-                const content = text.replace(/set content/i, '').trim();
-                document.getElementById('noteContent').value = content;
-                showToast('✅ Content added');
-            } else if (cmd.includes('save note')) {
-                document.getElementById('noteForm').dispatchEvent(new Event('submit'));
-                showToast('✅ Saved!');
-            } else if (cmd.includes('new note')) {
-                newNote();
-                showToast('✅ New note');
-            }
-        }
 
-        function selectColor(color) {
-            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-            const colorOption = document.querySelector(`[data-color="${color}"]`);
-            if (colorOption) {
-                colorOption.classList.add('selected');
-                document.getElementById('noteColor').value = color;
-            }
-        }
-
-        function addTag(tag) {
-            const container = document.getElementById('tagsContainer');
-            const tagEl = document.createElement('div');
-            tagEl.className = 'tag-item';
-            tagEl.innerHTML = `${tag}<button type="button">×</button>`;
-            tagEl.querySelector('button').addEventListener('click', (e) => {
-                e.preventDefault();
-                tagEl.remove();
+                voiceCommandMode = !voiceCommandMode;
+                document.getElementById('voiceCmd').classList.toggle('active');
+                
+                if (voiceCommandMode) {
+                    showToast('🎤 Voice commands active - Say commands like "new note", "save", "delete"');
+                    currentVoiceField = null;
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log('Recognition already running');
+                    }
+                } else {
+                    recognition.abort();
+                }
             });
-            container.appendChild(tagEl);
+        }
+
+        function handleVoiceCommand(command) {
+            command = command.toLowerCase();
+            
+            if (command.includes('new note')) {
+                currentNote = null;
+                openModal();
+                showToast('📝 New note ready');
+            } else if (command.includes('save')) {
+                saveNote();
+            } else if (command.includes('delete')) {
+                deleteCurrentNote();
+            } else {
+                showToast('❓ Unknown command: "' + command + '"');
+            }
+        }
+
+        // Recording
+        function setupRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .catch(err => console.log('Microphone access denied:', err.message));
+        }
+
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
         }
 
         async function startRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                
-                mediaRecorder.addEventListener('dataavailable', (e) => {
-                    audioChunks.push(e.data);
-                });
-                
-                mediaRecorder.addEventListener('stop', () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const playback = document.getElementById('recordingPlayback');
-                    playback.src = audioUrl;
-                    playback.style.display = 'block';
+                recordedAudio = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    recordedAudio.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedAudio, { type: 'audio/webm' });
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('playBtn').style.display = 'inline-block';
+                    document.getElementById('playBtn').dataset.audioUrl = url;
+                    document.getElementById('recordBtn').textContent = '🎙️ Record Again';
                     stream.getTracks().forEach(track => track.stop());
-                });
-                
+                };
+
                 mediaRecorder.start();
-                document.getElementById('recordBtn').style.display = 'none';
-                document.getElementById('stopRecordBtn').style.display = 'block';
-                showToast('🎙️ Recording...');
-            } catch (e) {
+                isRecording = true;
+                startTime = Date.now();
+                updateRecordingTime();
+                timerInterval = setInterval(updateRecordingTime, 100);
+                document.getElementById('recordBtn').textContent = '⏹️ Stop Recording';
+                document.getElementById('recordBtn').style.background = '#ef5350';
+            } catch (err) {
                 showToast('🎤 Microphone access denied');
             }
         }
@@ -893,158 +723,265 @@
         function stopRecording() {
             if (mediaRecorder) {
                 mediaRecorder.stop();
-                document.getElementById('recordBtn').style.display = 'block';
-                document.getElementById('stopRecordBtn').style.display = 'none';
-                showToast('✅ Recording saved');
+                isRecording = false;
+                clearInterval(timerInterval);
+                document.getElementById('recordBtn').style.background = '';
             }
         }
 
-        function newNote() {
-            currentNoteId = null;
-            document.getElementById('noteForm').reset();
-            document.getElementById('tagsContainer').innerHTML = '';
-            document.getElementById('noteColor').value = 'blue';
-            document.querySelector('[data-color="blue"]').classList.add('selected');
+        function updateRecordingTime() {
+            if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                document.getElementById('recordingTime').textContent = 
+                    `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function playRecording() {
+            const url = document.getElementById('playBtn').dataset.audioUrl;
+            if (url) {
+                const audio = new Audio(url);
+                audio.play();
+            }
+        }
+
+        // Notes Management
+        function openModal() {
+            document.getElementById('noteModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('noteModal').classList.remove('active');
             document.getElementById('deleteBtn').style.display = 'none';
-            document.getElementById('recordingPlayback').style.display = 'none';
-            document.getElementById('recordBtn').style.display = 'block';
-            document.getElementById('stopRecordBtn').style.display = 'none';
-            document.getElementById('editPanel').classList.add('active');
-            document.getElementById('noteTitle').focus();
+            document.getElementById('recordBtn').textContent = '🎙️ Record';
+            document.getElementById('recordBtn').style.background = '';
+            document.getElementById('playBtn').style.display = 'none';
+            document.getElementById('recordingTime').textContent = '';
+            currentNote = null;
+            currentColor = 'blue';
+            currentTags = [];
+            recordedAudio = null;
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            document.getElementById('tagInput').value = '';
+            document.getElementById('tagsList').innerHTML = '';
+            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector('.color-btn[data-color="blue"]').classList.add('selected');
         }
 
-        function editNote(id) {
-            const note = notes.find(n => n.id === id);
-            if (!note) return;
-            
-            currentNoteId = id;
-            document.getElementById('noteTitle').value = note.title;
-            document.getElementById('noteContent').value = note.content;
-            document.getElementById('noteColor').value = note.color;
-            
-            selectColor(note.color);
-            
-            document.getElementById('tagsContainer').innerHTML = '';
-            note.tags.forEach(tag => addTag(tag));
-            
-            const playback = document.getElementById('recordingPlayback');
-            if (note.audioData) {
-                playback.src = note.audioData;
-                playback.style.display = 'block';
-            } else {
-                playback.style.display = 'none';
+        function selectColor(color) {
+            currentColor = color;
+            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`.color-btn[data-color="${color}"]`).classList.add('selected');
+        }
+
+        function addTag(tag) {
+            if (tag && !currentTags.includes(tag)) {
+                currentTags.push(tag);
+                renderTags();
             }
-            
-            document.getElementById('deleteBtn').style.display = 'block';
-            document.getElementById('deleteBtn').onclick = () => deleteNote(id);
-            document.getElementById('editPanel').classList.add('active');
         }
 
-        function saveNote(e) {
-            e.preventDefault();
-            
-            const title = document.getElementById('noteTitle').value;
-            const content = document.getElementById('noteContent').value;
-            const color = document.getElementById('noteColor').value;
-            const tags = Array.from(document.querySelectorAll('.tag-item')).map(t => t.textContent.slice(0, -1));
-            const playback = document.getElementById('recordingPlayback');
-            const audioData = playback.src && playback.style.display !== 'none' ? playback.src : null;
-            
-            if (currentNoteId) {
-                const note = notes.find(n => n.id === currentNoteId);
-                Object.assign(note, { title, content, color, tags, audioData, updated: new Date().toISOString() });
+        function removeTag(tag) {
+            currentTags = currentTags.filter(t => t !== tag);
+            renderTags();
+        }
+
+        function renderTags() {
+            const tagsList = document.getElementById('tagsList');
+            tagsList.innerHTML = currentTags.map(tag => 
+                `<span class="note-tag" style="background: var(--color-${currentColor}, #667eea)">
+                    ${tag} <button onclick="removeTag('${tag}')" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px;">✕</button>
+                </span>`
+            ).join('');
+        }
+
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value.trim();
+
+            if (!title) {
+                showToast('⚠️ Please add a title');
+                return;
+            }
+
+            if (currentNote) {
+                // Edit existing
+                currentNote.title = title;
+                currentNote.content = content;
+                currentNote.color = currentColor;
+                currentNote.tags = currentTags;
+                currentNote.updated = new Date().toISOString();
             } else {
-                notes.push({
+                // Create new
+                const note = {
                     id: Date.now(),
                     title,
                     content,
-                    color,
-                    tags,
-                    audioData,
+                    color: currentColor,
+                    tags: currentTags,
                     created: new Date().toISOString(),
                     updated: new Date().toISOString()
-                });
+                };
+                notes.unshift(note);
             }
-            
+
             localStorage.setItem('voiceNotes', JSON.stringify(notes));
-            document.getElementById('editPanel').classList.remove('active');
+            syncToNotion();
             renderNotes();
-            showToast('✅ Note saved!');
+            closeModal();
+            showToast('✅ Note saved');
         }
 
-        function deleteNote(id) {
-            if (confirm('Delete this note?')) {
-                notes = notes.filter(n => n.id !== id);
+        function deleteCurrentNote() {
+            if (currentNote) {
+                notes = notes.filter(n => n.id !== currentNote.id);
                 localStorage.setItem('voiceNotes', JSON.stringify(notes));
-                document.getElementById('editPanel').classList.remove('active');
+                syncToNotion();
                 renderNotes();
-                showToast('🗑️ Deleted');
+                closeModal();
+                showToast('🗑️ Note deleted');
+            }
+        }
+
+        function editNote(noteId) {
+            currentNote = notes.find(n => n.id === noteId);
+            if (currentNote) {
+                document.getElementById('modalTitle').textContent = 'Edit Note';
+                document.getElementById('noteTitle').value = currentNote.title;
+                document.getElementById('noteContent').value = currentNote.content;
+                currentColor = currentNote.color;
+                currentTags = [...currentNote.tags];
+                
+                document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('selected'));
+                document.querySelector(`.color-btn[data-color="${currentColor}"]`).classList.add('selected');
+                renderTags();
+                
+                document.getElementById('deleteBtn').style.display = 'block';
+                openModal();
             }
         }
 
         function renderNotes() {
-            const list = document.getElementById('notesList');
-            const empty = document.getElementById('emptyState');
-            
-            if (notes.length === 0) {
-                list.innerHTML = '';
-                empty.style.display = 'flex';
-                return;
-            }
-            
-            empty.style.display = 'none';
-            list.innerHTML = notes.map(note => `
+            const grid = document.getElementById('notesGrid');
+            grid.innerHTML = notes.map(note => `
                 <div class="note-card ${note.color}" onclick="editNote(${note.id})">
                     <div class="note-title">${note.title}</div>
-                    <div class="note-tags">
-                        ${note.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    <div class="note-content">${note.content || '(No content)'}</div>
+                    <div class="note-meta">
+                        ${note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('')}
                     </div>
-                    <div class="note-preview">${note.content.substring(0, 100)}</div>
-                    ${note.audioData ? `
-                        <div class="note-audio">
-                            <audio controls style="flex: 1; height: 24px;">
-                                <source src="${note.audioData}" type="audio/wav">
-                            </audio>
-                        </div>
-                    ` : ''}
                 </div>
             `).join('');
         }
 
-        function syncToNotion() {
-            showToast('📤 Syncing to Notion...');
-            setTimeout(() => {
-                showToast('✅ Synced!');
-            }, 1500);
+        // Notion Sync
+        function setupSyncButton() {
+            document.getElementById('syncBtn').addEventListener('click', openNotionSettings);
         }
 
-        function search() {
-            const query = prompt('Search notes:');
-            if (!query) return;
-            
-            const results = notes.filter(n => 
-                n.title.toLowerCase().includes(query.toLowerCase()) ||
-                n.content.toLowerCase().includes(query.toLowerCase()) ||
-                n.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
-            );
-            
-            showToast(`Found ${results.length} note(s)`);
+        function openNotionSettings() {
+            const apiKey = prompt('Enter Notion API Key (leave empty to skip):', NOTION_CONFIG.apiKey);
+            if (apiKey === null) return;
+
+            if (apiKey) {
+                NOTION_CONFIG.apiKey = apiKey;
+                localStorage.setItem('notion_api_key', apiKey);
+
+                const databaseId = prompt('Enter Notion Database ID:', NOTION_CONFIG.databaseId);
+                if (databaseId) {
+                    NOTION_CONFIG.databaseId = databaseId;
+                    localStorage.setItem('notion_db_id', databaseId);
+                    syncToNotion();
+                }
+            }
         }
 
-        function showToast(msg) {
-            const existing = document.querySelector('.toast');
-            if (existing) existing.remove();
-            
+        async function syncToNotion() {
+            if (!NOTION_CONFIG.apiKey || !NOTION_CONFIG.databaseId) {
+                return;
+            }
+
+            document.getElementById('syncStatus').textContent = '⏳ Syncing...';
+            document.getElementById('syncBtn').classList.add('syncing');
+
+            try {
+                for (const note of notes) {
+                    await syncNoteToNotion(note);
+                }
+                document.getElementById('syncStatus').textContent = '✅ Synced at ' + new Date().toLocaleTimeString();
+                setTimeout(() => {
+                    document.getElementById('syncStatus').textContent = '';
+                }, 3000);
+            } catch (err) {
+                document.getElementById('syncStatus').textContent = '❌ Sync failed';
+                console.error('Sync error:', err);
+            } finally {
+                document.getElementById('syncBtn').classList.remove('syncing');
+            }
+        }
+
+        async function syncNoteToNotion(note) {
+            const response = await fetch('https://api.notion.com/v1/pages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${NOTION_CONFIG.apiKey}`,
+                    'Content-Type': 'application/json',
+                    'Notion-Version': '2022-06-28'
+                },
+                body: JSON.stringify({
+                    parent: { database_id: NOTION_CONFIG.databaseId },
+                    properties: {
+                        'Title': {
+                            title: [{ text: { content: note.title } }]
+                        },
+                        'Content': {
+                            rich_text: [{ text: { content: note.content } }]
+                        },
+                        'Color': {
+                            select: { name: note.color }
+                        },
+                        'Tags': {
+                            multi_select: note.tags.map(tag => ({ name: tag }))
+                        }
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+        }
+
+        // FAB
+        document.getElementById('newNoteBtn').addEventListener('click', () => {
+            currentNote = null;
+            document.getElementById('modalTitle').textContent = 'New Note';
+            currentColor = 'blue';
+            currentTags = [];
+            recordedAudio = null;
+            openModal();
+        });
+
+        // Toast
+        function showToast(message) {
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.textContent = msg;
+            toast.textContent = message;
             document.body.appendChild(toast);
-            
+            setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // Initial render
-        renderNotes();
+        // Modal background click
+        document.getElementById('noteModal').addEventListener('click', (e) => {
+            if (e.target.id === 'noteModal') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
