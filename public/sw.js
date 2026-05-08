@@ -1,1 +1,111 @@
-const CACHE_NAME = 'voicenotes-v1';\nself.addEventListener('install', (event) => {\n  event.waitUntil(caches.open(CACHE_NAME).then((cache) => {\n    return cache.addAll(['/public/index.html', '/public/css/style.css', '/public/js/app.js', '/public/manifest.json']).catch(err => {\n      console.log('Cache error:', err);\n    });\n  }));\n  self.skipWaiting();\n});\nself.addEventListener('activate', (event) => {\n  event.waitUntil(caches.keys().then((cacheNames) => {\n    return Promise.all(cacheNames.map((cacheName) => {\n      if (cacheName !== CACHE_NAME) return caches.delete(cacheName);\n    }));\n  }));\n  self.clients.claim();\n});\nself.addEventListener('fetch', (event) => {\n  if (event.request.method !== 'GET') return;\n  event.respondWith(caches.match(event.request).then((response) => {\n    if (response) return response;\n    return fetch(event.request).then((response) => {\n      if (!response || response.status !== 200 || response.type !== 'basic') return response;\n      const responseToCache = response.clone();\n      caches.open(CACHE_NAME).then((cache) => {\n        cache.put(event.request, responseToCache);\n      });\n      return response;\n    }).catch(() => {\n      return caches.match('/public/index.html');\n    });\n  }));\n});
+const CACHE_NAME = 'voicenotes-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/css/style.css',
+  '/js/app.js',
+  '/manifest.json'
+];
+
+// Install event
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS).catch(() => {
+        // Continue even if some assets fail to cache
+        return Promise.resolve();
+      });
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activate event
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event
+self.addEventListener('fetch', event => {
+  // Skip non-GET requests and external APIs
+  if (event.request.method !== 'GET' || event.request.url.includes('notion.com')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      if (response) {
+        return response;
+      }
+
+      return fetch(event.request).then(response => {
+        // Cache successful responses for non-API calls
+        if (!event.request.url.includes('api.') && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      }).catch(() => {
+        // Return cached version if fetch fails
+        return caches.match(event.request);
+      });
+    })
+  );
+});
+
+// Background sync for offline actions (when online again)
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-notes') {
+    event.waitUntil(
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'SYNC_NOTES' });
+        });
+      })
+    );
+  }
+});
+
+// Push notifications (for future use)
+self.addEventListener('push', event => {
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body || 'New notification',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: 'voicenotes-notification'
+    };
+    event.waitUntil(self.registration.showNotification(data.title || 'VoiceNotes', options));
+  }
+});
+
+// Notification click
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(clientList => {
+      for (let i = 0; i < clientList.length; i++) {
+        if (clientList[i].url === '/' && 'focus' in clientList[i]) {
+          return clientList[i].focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
+});
