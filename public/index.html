@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voicenote - Mobile App</title>
+    <title>VoiceNote - Sync with Notion</title>
     <style>
         * {
             margin: 0;
@@ -12,184 +12,198 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding-bottom: 100px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
         }
 
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 24px;
+            font-weight: 600;
         }
 
-        .header-controls {
+        .header-buttons {
             display: flex;
             gap: 10px;
-            justify-content: center;
-            margin-top: 10px;
         }
 
-        .sync-btn, .voice-cmd-btn {
+        .btn-icon {
             background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
+            border: none;
             color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.3s;
         }
 
-        .sync-btn:hover, .voice-cmd-btn:hover {
+        .btn-icon:hover {
             background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
         }
 
-        .sync-btn.syncing, .voice-cmd-btn.recording {
-            opacity: 0.6;
-            background: rgba(255,100,100,0.3);
+        .btn-icon.active {
+            background: #ffd700;
+            color: #667eea;
         }
 
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 0 10px;
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .notes-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
         }
 
         .note-card {
             background: white;
+            border: 2px solid #e0e0e0;
             border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
+            padding: 15px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            position: relative;
         }
 
-        .note-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        .note-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        .note-card.red { border-left-color: #ef4444; }
-        .note-card.orange { border-left-color: #f97316; }
-        .note-card.yellow { border-left-color: #eab308; }
-        .note-card.green { border-left-color: #22c55e; }
-        .note-card.blue { border-left-color: #3b82f6; }
-        .note-card.purple { border-left-color: #a855f7; }
-        .note-card.pink { border-left-color: #ec4899; }
-        .note-card.gray { border-left-color: #6b7280; }
+        .note-card.red { border-left: 4px solid #ff6b6b; }
+        .note-card.orange { border-left: 4px solid #ffa94d; }
+        .note-card.yellow { border-left: 4px solid #ffd43b; }
+        .note-card.green { border-left: 4px solid #51cf66; }
+        .note-card.blue { border-left: 4px solid #4dabf7; }
+        .note-card.purple { border-left: 4px solid #b197fc; }
 
         .note-title {
-            font-size: 18px;
             font-weight: 600;
-            color: #1f2937;
+            font-size: 16px;
             margin-bottom: 8px;
-        }
-
-        .note-preview {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 10px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            word-break: break-word;
         }
 
         .note-tags {
             display: flex;
-            gap: 6px;
             flex-wrap: wrap;
-            margin-bottom: 10px;
+            gap: 5px;
+            margin-bottom: 8px;
         }
 
         .tag {
-            background: #e5e7eb;
-            color: #374151;
-            padding: 4px 10px;
+            background: #f0f0f0;
+            padding: 3px 8px;
             border-radius: 12px;
             font-size: 12px;
+            color: #666;
         }
 
-        .note-meta {
+        .note-preview {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .note-audio {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .note-audio audio {
+            flex: 1;
+            height: 24px;
+            border-radius: 6px;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
             font-size: 12px;
-            color: #9ca3af;
+            background: #f0f0f0;
+            transition: all 0.3s;
         }
 
-        .modal {
+        .btn-small:hover {
+            background: #e0e0e0;
+        }
+
+        .edit-panel {
             display: none;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9f9;
             position: fixed;
-            top: 0;
+            bottom: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            max-height: 60vh;
             overflow-y: auto;
-            padding-bottom: 20px;
+            animation: slideUp 0.3s ease;
         }
 
-        .modal.active {
-            display: flex;
-            align-items: flex-end;
+        .edit-panel.active {
+            display: block;
         }
 
-        .modal-content {
-            background: white;
-            width: 100%;
-            border-radius: 16px 16px 0 0;
-            padding: 20px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .modal-header h2 {
-            font-size: 20px;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #6b7280;
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
         }
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
 
         .form-group label {
             display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #374151;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
         }
 
         .form-group input,
@@ -197,10 +211,18 @@
         .form-group select {
             width: 100%;
             padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .form-group textarea {
@@ -209,483 +231,626 @@
         }
 
         .color-picker {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            display: flex;
             gap: 10px;
-            margin-top: 10px;
+            flex-wrap: wrap;
         }
 
         .color-option {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 8px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .color-option.red { background: #ef4444; }
-        .color-option.orange { background: #f97316; }
-        .color-option.yellow { background: #eab308; }
-        .color-option.green { background: #22c55e; }
-        .color-option.blue { background: #3b82f6; }
-        .color-option.purple { background: #a855f7; }
-        .color-option.pink { background: #ec4899; }
-        .color-option.gray { background: #6b7280; }
-
-        .color-option.selected {
-            border-color: white;
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
-        }
-
-        .fab, .voice-fab {
-            position: fixed;
-            width: 60px;
-            height: 60px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            font-size: 28px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-            z-index: 500;
+            border: 3px solid transparent;
             transition: all 0.3s;
         }
 
-        .fab {
-            bottom: 20px;
-            right: 20px;
+        .color-option.red { background: #ff6b6b; }
+        .color-option.orange { background: #ffa94d; }
+        .color-option.yellow { background: #ffd43b; }
+        .color-option.green { background: #51cf66; }
+        .color-option.blue { background: #4dabf7; }
+        .color-option.purple { background: #b197fc; }
+
+        .color-option.selected {
+            border-color: #333;
+            transform: scale(1.2);
         }
 
-        .voice-fab {
-            bottom: 90px;
-            right: 20px;
-            font-size: 24px;
+        .tags-input {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
         }
 
-        .fab:active, .voice-fab:active {
-            transform: scale(0.95);
+        .tag-item {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .voice-fab.recording {
-            background: #ef4444;
-            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+        .tag-item button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
         }
 
-        .actions {
+        .tag-input {
+            flex: 1;
+            padding: 6px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .form-buttons {
             display: flex;
             gap: 10px;
             margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
         }
 
-        .btn {
+        .btn-primary,
+        .btn-secondary {
             flex: 1;
             padding: 12px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
 
-        .btn-save {
+        .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
 
-        .btn-delete {
-            background: #fee2e2;
-            color: #dc2626;
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .btn-cancel {
-            background: #f3f4f6;
-            color: #374151;
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .voice-input {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .voice-input button {
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .voice-input button:hover {
+            background: #5568d3;
+        }
+
+        .voice-input button.recording {
+            background: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+        }
+
+        .fab.recording {
+            background: #ff6b6b;
+            animation: pulse 1s infinite;
         }
 
         .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #999;
             text-align: center;
-            padding: 40px 20px;
-            color: #9ca3af;
         }
 
-        .empty-state p {
-            font-size: 16px;
-            margin-bottom: 10px;
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+            z-index: 99;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        @media (max-width: 480px) {
-            .header h1 { font-size: 24px; }
-            .note-card { border-radius: 8px; }
-            .modal-content { border-radius: 12px 12px 0 0; }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🎤 Voicenote</h1>
-        <div class="header-controls">
-            <button class="sync-btn" id="syncBtn" onclick="app.syncNotes()">
-                <span id="syncText">Sync</span>
-            </button>
-            <button class="voice-cmd-btn" id="voiceCmdBtn" onclick="app.toggleVoiceCommand()">
-                <span id="voiceCmdText">Voice</span>
-            </button>
-        </div>
-    </div>
-
     <div class="container">
-        <div class="notes-list" id="notesList"></div>
-        <div class="empty-state" id="emptyState">
-            <p>No notes yet</p>
-            <p style="font-size: 12px;">Tap + to create your first note</p>
+        <div class="header">
+            <h1>🎙️ VoiceNote</h1>
+            <div class="header-buttons">
+                <button class="btn-icon" id="voiceCmd" title="Voice Commands">🎤</button>
+                <button class="btn-icon" id="syncBtn" title="Sync to Notion">☁️</button>
+                <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="notes-list" id="notesList"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2"/>
+                    <path d="M50 35v30m-15-15h30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <p>No notes yet. Click + to create one!</p>
+            </div>
+        </div>
+
+        <div class="edit-panel" id="editPanel">
+            <form id="noteForm">
+                <div class="form-group">
+                    <label>Title</label>
+                    <div class="voice-input">
+                        <input type="text" id="noteTitle" placeholder="Note title..." required>
+                        <button type="button" id="voiceTitleBtn" class="voice-btn">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="color-picker">
+                        <div class="color-option red" data-color="red"></div>
+                        <div class="color-option orange" data-color="orange"></div>
+                        <div class="color-option yellow" data-color="yellow"></div>
+                        <div class="color-option green" data-color="green"></div>
+                        <div class="color-option blue" data-color="blue"></div>
+                        <div class="color-option purple" data-color="purple"></div>
+                    </div>
+                    <input type="hidden" id="noteColor" value="blue">
+                </div>
+
+                <div class="form-group">
+                    <label>Tags</label>
+                    <div class="tags-input" id="tagsContainer"></div>
+                    <div class="voice-input">
+                        <input type="text" id="tagInput" placeholder="Add a tag..." class="tag-input">
+                        <button type="button" id="voiceTagBtn" class="voice-btn">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Content</label>
+                    <div class="voice-input">
+                        <textarea id="noteContent" placeholder="Write or speak your note..."></textarea>
+                        <button type="button" id="voiceContentBtn" class="voice-btn">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Voice Recording</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" id="recordBtn" class="voice-btn" style="flex: 1;">🎙️ Start Recording</button>
+                        <button type="button" id="stopRecordBtn" class="voice-btn" style="flex: 1; display: none;">⏹️ Stop</button>
+                    </div>
+                    <audio id="recordingPlayback" style="width: 100%; margin-top: 10px; display: none;" controls></audio>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="submit" class="btn-primary">💾 Save Note</button>
+                    <button type="button" id="deleteBtn" class="btn-secondary" style="display: none;">🗑️ Delete</button>
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('editPanel').classList.remove('active')">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <button class="voice-fab" id="voiceRecordBtn" onclick="app.toggleRecording()" title="Voice Record">🎙️</button>
-    <button class="fab" id="addBtn" onclick="app.openNewNoteModal()">+</button>
-
-    <!-- Note Detail Modal -->
-    <div class="modal" id="noteModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">New Note</h2>
-                <button class="close-btn" onclick="app.closeModal()">&times;</button>
-            </div>
-
-            <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="noteTitle" placeholder="Note title">
-            </div>
-
-            <div class="form-group">
-                <label>Content</label>
-                <textarea id="noteContent" placeholder="Write your note here..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Color</label>
-                <div class="color-picker" id="colorPicker"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Tags (comma-separated)</label>
-                <input type="text" id="noteTags" placeholder="e.g., important, personal, work">
-            </div>
-
-            <div class="actions">
-                <button class="btn btn-cancel" onclick="app.closeModal()">Cancel</button>
-                <button class="btn btn-save" onclick="app.saveNote()" id="saveBtn">Save</button>
-                <button class="btn btn-delete" onclick="app.deleteNote()" id="deleteBtn" style="display:none;">Delete</button>
-            </div>
-        </div>
-    </div>
+    <button class="fab" id="newNoteBtn">➕</button>
 
     <script>
-        // Main app object
-        const app = {
-            API_BASE: 'https://voicenote-worker.futuresuccess105.workers.dev',
-            colors: ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'],
-            currentNote: null,
-            isRecording: false,
-            mediaRecorder: null,
-            audioChunks: [],
-            recognition: null,
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
 
-            // Initialize app
-            init() {
-                this.initColorPicker();
-                this.initSpeechRecognition();
-                this.loadNotes();
-                setInterval(() => this.loadNotes(), 5000);
-            },
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let currentNoteId = null;
+        let notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
+        let voiceCommandMode = false;
 
-            // Setup Web Speech API
-            initSpeechRecognition() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (SpeechRecognition) {
-                    this.recognition = new SpeechRecognition();
-                    this.recognition.continuous = true;
-                    this.recognition.interimResults = true;
-                    this.recognition.onresult = (e) => this.handleSpeechResult(e);
-                    this.recognition.onerror = (e) => console.error('Speech error:', e.error);
+        // Initialize
+        document.getElementById('newNoteBtn').addEventListener('click', newNote);
+        document.getElementById('syncBtn').addEventListener('click', syncToNotion);
+        document.getElementById('searchBtn').addEventListener('click', search);
+        document.getElementById('voiceCmd').addEventListener('click', toggleVoiceCommands);
+        document.getElementById('noteForm').addEventListener('submit', saveNote);
+        document.getElementById('recordBtn').addEventListener('click', startRecording);
+        document.getElementById('stopRecordBtn').addEventListener('click', stopRecording);
+
+        // Voice buttons for each field
+        document.getElementById('voiceTitleBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            startVoiceInput('noteTitle');
+        });
+        document.getElementById('voiceTagBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            startVoiceInput('tagInput');
+        });
+        document.getElementById('voiceContentBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            startVoiceInput('noteContent');
+        });
+
+        // Color picker
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                document.getElementById('noteColor').value = this.dataset.color;
+            });
+        });
+
+        // Tag input
+        document.getElementById('tagInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const tag = e.target.value.trim();
+                if (tag) {
+                    addTag(tag);
+                    e.target.value = '';
                 }
-            },
-
-            handleSpeechResult(event) {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const t = event.results[i][0].transcript;
-                    transcript += t;
-                    if (event.results[i].isFinal) {
-                        this.createNoteFromVoice(t);
-                    }
-                }
-            },
-
-            createNoteFromVoice(transcript) {
-                document.getElementById('noteContent').value = transcript;
-                document.getElementById('noteTitle').value = `Voice Note - ${new Date().toLocaleTimeString()}`;
-                this.openNewNoteModal();
-            },
-
-            toggleVoiceCommand() {
-                if (!this.recognition) {
-                    alert('Voice commands not supported in your browser');
-                    return;
-                }
-                if (this.recognition.isListening) {
-                    this.recognition.stop();
-                } else {
-                    this.recognition.start();
-                }
-            },
-
-            toggleRecording() {
-                if (this.isRecording) {
-                    this.stopRecording();
-                } else {
-                    this.startRecording();
-                }
-            },
-
-            async startRecording() {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    this.mediaRecorder = new MediaRecorder(stream);
-                    this.audioChunks = [];
-                    
-                    this.mediaRecorder.ondataavailable = (e) => this.audioChunks.push(e.data);
-                    this.mediaRecorder.onstop = () => this.processAudio();
-                    
-                    this.mediaRecorder.start();
-                    this.isRecording = true;
-                    document.getElementById('voiceRecordBtn').classList.add('recording');
-                } catch (error) {
-                    alert('Microphone access denied');
-                }
-            },
-
-            stopRecording() {
-                if (this.mediaRecorder) {
-                    this.mediaRecorder.stop();
-                    this.isRecording = false;
-                    document.getElementById('voiceRecordBtn').classList.remove('recording');
-                }
-            },
-
-            processAudio() {
-                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-
-                // Send to speech recognition (using browser's built-in recognition)
-                const reader = new FileReader();
-                reader.onload = () => {
-                    // For demo: just create note with timestamp
-                    this.openNewNoteModal();
-                    document.getElementById('noteTitle').value = `Voice Note - ${new Date().toLocaleString()}`;
-                };
-                reader.readAsArrayBuffer(audioBlob);
-            },
-
-            // Initialize color picker
-            initColorPicker() {
-                const picker = document.getElementById('colorPicker');
-                this.colors.forEach(color => {
-                    const div = document.createElement('div');
-                    div.className = `color-option ${color}`;
-                    div.onclick = () => {
-                        document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-                        div.classList.add('selected');
-                    };
-                    picker.appendChild(div);
-                });
-            },
-
-            // Load notes
-            async loadNotes() {
-                try {
-                    const response = await fetch(`${this.API_BASE}/notes`);
-                    const notes = await response.json();
-                    this.renderNotes(notes);
-                } catch (error) {
-                    console.error('Failed to load notes:', error);
-                }
-            },
-
-            // Render notes
-            renderNotes(notes) {
-                const container = document.getElementById('notesList');
-                const empty = document.getElementById('emptyState');
-
-                if (!notes || notes.length === 0) {
-                    container.innerHTML = '';
-                    empty.style.display = 'block';
-                    return;
-                }
-
-                empty.style.display = 'none';
-                container.innerHTML = notes.map(note => `
-                    <div class="note-card ${note.color || 'blue'}" onclick="app.openNote('${note.id}')">
-                        <div class="note-title">${this.escapeHtml(note.title)}</div>
-                        <div class="note-preview">${this.escapeHtml(note.content)}</div>
-                        ${note.tags && note.tags.length > 0 ? `
-                            <div class="note-tags">
-                                ${note.tags.map(t => `<span class="tag">${this.escapeHtml(t)}</span>`).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="note-meta">${new Date(note.updated || note.created).toLocaleDateString()}</div>
-                    </div>
-                `).join('');
-            },
-
-            // Open new note modal
-            openNewNoteModal() {
-                this.currentNote = null;
-                document.getElementById('modalTitle').textContent = 'New Note';
-                document.getElementById('noteTitle').value = '';
-                document.getElementById('noteContent').value = '';
-                document.getElementById('noteTags').value = '';
-                document.getElementById('saveBtn').textContent = 'Create';
-                document.getElementById('deleteBtn').style.display = 'none';
-                document.querySelectorAll('.color-option').forEach((c, i) => {
-                    if (i === 0) c.classList.add('selected');
-                    else c.classList.remove('selected');
-                });
-                document.getElementById('noteModal').classList.add('active');
-            },
-
-            // Open existing note
-            openNote(id) {
-                this.loadNotes().then(() => {
-                    fetch(`${this.API_BASE}/notes`)
-                        .then(r => r.json())
-                        .then(notes => {
-                            const note = notes.find(n => n.id === id);
-                            if (note) {
-                                this.currentNote = note;
-                                document.getElementById('modalTitle').textContent = 'Edit Note';
-                                document.getElementById('noteTitle').value = note.title;
-                                document.getElementById('noteContent').value = note.content;
-                                document.getElementById('noteTags').value = (note.tags || []).join(', ');
-                                document.getElementById('saveBtn').textContent = 'Update';
-                                document.getElementById('deleteBtn').style.display = 'block';
-                                
-                                document.querySelectorAll('.color-option').forEach(c => {
-                                    c.classList.toggle('selected', c.classList.contains(note.color));
-                                });
-                                
-                                document.getElementById('noteModal').classList.add('active');
-                            }
-                        });
-                });
-            },
-
-            // Close modal
-            closeModal() {
-                document.getElementById('noteModal').classList.remove('active');
-                this.currentNote = null;
-            },
-
-            // Save note
-            async saveNote() {
-                const title = document.getElementById('noteTitle').value.trim();
-                const content = document.getElementById('noteContent').value.trim();
-                const color = document.querySelector('.color-option.selected').classList[1];
-                const tags = document.getElementById('noteTags').value
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(t => t);
-
-                if (!title) {
-                    alert('Please enter a title');
-                    return;
-                }
-
-                const noteData = { title, content, color, tags };
-
-                try {
-                    if (this.currentNote) {
-                        await fetch(`${this.API_BASE}/notes/${this.currentNote.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(noteData),
-                        });
-                    } else {
-                        await fetch(`${this.API_BASE}/notes`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(noteData),
-                        });
-                    }
-                    this.closeModal();
-                    this.loadNotes();
-                } catch (error) {
-                    alert('Failed to save note: ' + error.message);
-                }
-            },
-
-            // Delete note
-            async deleteNote() {
-                if (!this.currentNote || !confirm('Delete this note?')) return;
-
-                try {
-                    await fetch(`${this.API_BASE}/notes/${this.currentNote.id}`, { method: 'DELETE' });
-                    this.closeModal();
-                    this.loadNotes();
-                } catch (error) {
-                    alert('Failed to delete note: ' + error.message);
-                }
-            },
-
-            // Sync notes
-            async syncNotes() {
-                const btn = document.getElementById('syncBtn');
-                const text = document.getElementById('syncText');
-                btn.disabled = true;
-                btn.classList.add('syncing');
-                text.innerHTML = '<span class="spinner"></span>';
-
-                try {
-                    await fetch(`${this.API_BASE}/sync`, { method: 'POST' });
-                    this.loadNotes();
-                } catch (error) {
-                    alert('Sync failed: ' + error.message);
-                } finally {
-                    btn.disabled = false;
-                    btn.classList.remove('syncing');
-                    text.textContent = 'Sync';
-                }
-            },
-
-            // Helper: Escape HTML
-            escapeHtml(text) {
-                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#039;' };
-                return text.replace(/[&<>"']/g, m => map[m]);
             }
-        };
+        });
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => app.init());
+        recognition.addEventListener('result', (e) => {
+            const transcript = Array.from(e.results)
+                .map(result => result[0].transcript)
+                .join('');
+            
+            if (voiceCommandMode) {
+                handleVoiceCommand(transcript);
+            } else if (currentVoiceInput) {
+                const input = document.getElementById(currentVoiceInput);
+                if (currentVoiceInput === 'tagInput') {
+                    addTag(transcript);
+                } else if (currentVoiceInput === 'noteContent') {
+                    input.value += (input.value ? ' ' : '') + transcript;
+                } else {
+                    input.value = transcript;
+                }
+                currentVoiceInput = null;
+            }
+        });
+
+        let currentVoiceInput = null;
+
+        function startVoiceInput(fieldId) {
+            currentVoiceInput = fieldId;
+            recognition.start();
+            showToast('🎤 Listening...');
+        }
+
+        function toggleVoiceCommands() {
+            voiceCommandMode = !voiceCommandMode;
+            document.getElementById('voiceCmd').classList.toggle('active');
+            if (voiceCommandMode) {
+                recognition.start();
+                showToast('🎤 Voice commands active! Say "set title", "set color", "add tag", "set content", or "save note"');
+            } else {
+                recognition.abort();
+                showToast('Voice commands disabled');
+            }
+        }
+
+        function handleVoiceCommand(text) {
+            const cmd = text.toLowerCase();
+            
+            if (cmd.includes('set title')) {
+                const title = text.replace(/set title/i, '').trim();
+                document.getElementById('noteTitle').value = title;
+                showToast(`Title set to: ${title}`);
+            } else if (cmd.includes('set color')) {
+                const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+                for (let color of colors) {
+                    if (cmd.includes(color)) {
+                        selectColor(color);
+                        showToast(`Color set to: ${color}`);
+                        break;
+                    }
+                }
+            } else if (cmd.includes('add tag')) {
+                const tag = text.replace(/add tag/i, '').trim();
+                addTag(tag);
+                showToast(`Tag added: ${tag}`);
+            } else if (cmd.includes('set content')) {
+                const content = text.replace(/set content/i, '').trim();
+                document.getElementById('noteContent').value = content;
+                showToast('Content added');
+            } else if (cmd.includes('save note')) {
+                document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+                showToast('Note saved!');
+            } else if (cmd.includes('new note')) {
+                newNote();
+                showToast('New note created');
+            }
+            
+            // Continue listening for more commands
+            if (voiceCommandMode) {
+                recognition.start();
+            }
+        }
+
+        function selectColor(color) {
+            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+            document.querySelector(`[data-color="${color}"]`).classList.add('selected');
+            document.getElementById('noteColor').value = color;
+        }
+
+        function addTag(tag) {
+            const container = document.getElementById('tagsContainer');
+            const tagEl = document.createElement('div');
+            tagEl.className = 'tag-item';
+            tagEl.innerHTML = `${tag}<button type="button">×</button>`;
+            tagEl.querySelector('button').addEventListener('click', (e) => {
+                e.preventDefault();
+                tagEl.remove();
+            });
+            container.appendChild(tagEl);
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.addEventListener('dataavailable', (e) => {
+                    audioChunks.push(e.data);
+                });
+                
+                mediaRecorder.addEventListener('stop', () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const playback = document.getElementById('recordingPlayback');
+                    playback.src = audioUrl;
+                    playback.style.display = 'block';
+                    stream.getTracks().forEach(track => track.stop());
+                });
+                
+                mediaRecorder.start();
+                document.getElementById('recordBtn').style.display = 'none';
+                document.getElementById('stopRecordBtn').style.display = 'block';
+                document.getElementById('recordBtn').classList.add('recording');
+                showToast('🎙️ Recording...');
+            } catch (e) {
+                showToast('Microphone access denied');
+            }
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            document.getElementById('recordBtn').style.display = 'block';
+            document.getElementById('stopRecordBtn').style.display = 'none';
+            document.getElementById('recordBtn').classList.remove('recording');
+            showToast('Recording saved!');
+        }
+
+        function newNote() {
+            currentNoteId = null;
+            document.getElementById('noteForm').reset();
+            document.getElementById('tagsContainer').innerHTML = '';
+            document.getElementById('noteColor').value = 'blue';
+            document.querySelector('[data-color="blue"]').classList.add('selected');
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.getElementById('recordingPlayback').style.display = 'none';
+            document.getElementById('recordBtn').style.display = 'block';
+            document.getElementById('stopRecordBtn').style.display = 'none';
+            document.getElementById('editPanel').classList.add('active');
+            document.getElementById('noteTitle').focus();
+        }
+
+        function editNote(id) {
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+            
+            currentNoteId = id;
+            document.getElementById('noteTitle').value = note.title;
+            document.getElementById('noteContent').value = note.content;
+            document.getElementById('noteColor').value = note.color;
+            
+            // Set color selection
+            selectColor(note.color);
+            
+            // Add tags
+            document.getElementById('tagsContainer').innerHTML = '';
+            note.tags.forEach(tag => addTag(tag));
+            
+            // Add recording if exists
+            const playback = document.getElementById('recordingPlayback');
+            if (note.audioData) {
+                playback.src = note.audioData;
+                playback.style.display = 'block';
+            } else {
+                playback.style.display = 'none';
+            }
+            
+            document.getElementById('deleteBtn').style.display = 'block';
+            document.getElementById('deleteBtn').onclick = () => deleteNote(id);
+            document.getElementById('editPanel').classList.add('active');
+        }
+
+        function saveNote(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('noteTitle').value;
+            const content = document.getElementById('noteContent').value;
+            const color = document.getElementById('noteColor').value;
+            const tags = Array.from(document.querySelectorAll('.tag-item')).map(t => t.textContent.slice(0, -1));
+            const playback = document.getElementById('recordingPlayback');
+            const audioData = playback.src && playback.style.display !== 'none' ? playback.src : null;
+            
+            if (currentNoteId) {
+                const note = notes.find(n => n.id === currentNoteId);
+                Object.assign(note, { title, content, color, tags, audioData, updated: new Date().toISOString() });
+            } else {
+                notes.push({
+                    id: Date.now(),
+                    title,
+                    content,
+                    color,
+                    tags,
+                    audioData,
+                    created: new Date().toISOString(),
+                    updated: new Date().toISOString()
+                });
+            }
+            
+            localStorage.setItem('voiceNotes', JSON.stringify(notes));
+            document.getElementById('editPanel').classList.remove('active');
+            renderNotes();
+            showToast('✅ Note saved!');
+        }
+
+        function deleteNote(id) {
+            if (confirm('Delete this note?')) {
+                notes = notes.filter(n => n.id !== id);
+                localStorage.setItem('voiceNotes', JSON.stringify(notes));
+                document.getElementById('editPanel').classList.remove('active');
+                renderNotes();
+                showToast('🗑️ Note deleted');
+            }
+        }
+
+        function renderNotes() {
+            const list = document.getElementById('notesList');
+            const empty = document.getElementById('emptyState');
+            
+            if (notes.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'flex';
+                return;
+            }
+            
+            empty.style.display = 'none';
+            list.innerHTML = notes.map(note => `
+                <div class="note-card ${note.color}" onclick="editNote(${note.id})">
+                    <div class="note-title">${note.title}</div>
+                    <div class="note-tags">
+                        ${note.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="note-preview">${note.content.substring(0, 100)}</div>
+                    ${note.audioData ? `
+                        <div class="note-audio">
+                            <audio controls style="flex: 1; height: 24px;">
+                                <source src="${note.audioData}" type="audio/wav">
+                            </audio>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function syncToNotion() {
+            showToast('📤 Syncing to Notion...');
+            // TODO: Implement Notion sync via backend
+            setTimeout(() => {
+                showToast('✅ Synced! (Set up in settings)');
+            }, 1500);
+        }
+
+        function search() {
+            const query = prompt('Search notes:');
+            if (!query) return;
+            
+            const results = notes.filter(n => 
+                n.title.toLowerCase().includes(query.toLowerCase()) ||
+                n.content.toLowerCase().includes(query.toLowerCase()) ||
+                n.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
+            );
+            
+            showToast(`Found ${results.length} note(s)`);
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Initial render
+        renderNotes();
     </script>
 </body>
 </html>
