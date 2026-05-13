@@ -162,6 +162,8 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
           setSaveIndicator("saved");
           setTimeout(() => setSaveIndicator(""), 1800);
+          // Auto-sync to Notion after saving
+          autoSyncToNotion();
         } catch (e) {}
       }, 600);
     }
@@ -958,4 +960,77 @@
     function escapeHtml(text) {
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
       return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Notion Sync Functions
+    let lastSyncTime = 0;
+    const SYNC_DEBOUNCE = 5000; // Only sync every 5 seconds to avoid rate limiting
+    let syncInProgress = false;
+
+    async function autoSyncToNotion() {
+      // Auto-sync with debounce to avoid too many requests
+      const now = Date.now();
+      if (now - lastSyncTime < SYNC_DEBOUNCE || syncInProgress) {
+        return; // Skip if too soon or already syncing
+      }
+      lastSyncTime = now;
+      await syncNotesWithNotion(true); // true = silent mode
+    }
+
+    async function syncNotesWithNotion(silent = false) {
+      if (syncInProgress) {
+        if (!silent) showStatus("⏳ Sync already in progress...", 2000);
+        return;
+      }
+
+      syncInProgress = true;
+      try {
+        if (!silent) showStatus("🔄 Syncing to Notion...", 2000);
+        
+        // Get all notes from storage
+        const allNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        
+        if (allNotes.length === 0) {
+          if (!silent) showStatus("📝 No notes to sync", 2000);
+          syncInProgress = false;
+          return;
+        }
+
+        // Get the current page's origin to construct the API endpoint
+        const baseUrl = window.location.origin;
+        const endpoint = baseUrl + '/api/sync'; // Cloudflare Worker endpoint
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'sync',
+            notes: allNotes
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Sync failed with status ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          const message = result.synced 
+            ? `✅ Synced ${result.synced} note${result.synced !== 1 ? 's' : ''} to Notion!`
+            : '✅ Sync complete!';
+          if (!silent) showStatus(message, 3000);
+          console.log('Notion sync successful:', result);
+        } else {
+          throw new Error(result.error || 'Sync returned an error');
+        }
+      } catch (error) {
+        console.error('Notion sync error:', error);
+        const errorMsg = error.message || 'Unknown error';
+        if (!silent) showStatus(`❌ Sync failed: ${errorMsg}`, 4000);
+      } finally {
+        syncInProgress = false;
+      }
     }
