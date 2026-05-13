@@ -203,7 +203,7 @@ async function syncToNotion(env, corsHeaders) {
           body: JSON.stringify({
             parent: { database_id: env.NOTION_DATABASE_ID },
             properties: {
-              'Title': {
+              'Name': {
                 title: [{ text: { content: note.title || 'Untitled' } }]
               },
               'Content': {
@@ -212,8 +212,14 @@ async function syncToNotion(env, corsHeaders) {
               'Color': {
                 rich_text: [{ text: { content: note.color || '#FFE5B4' } }]
               },
+              'NoteID': {
+                rich_text: [{ text: { content: key.name } }]
+              },
               'Tags': {
                 multi_select: (note.tags || []).map(tag => ({ name: tag }))
+              },
+              'Created': {
+                date: { start: new Date(note.created).toISOString().split('T')[0] }
               }
             }
           })
