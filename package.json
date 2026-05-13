@@ -1,0 +1,21 @@
+{
+  "name": "voicenote-worker",
+  "version": "1.0.0",
+  "description": "VoiceNote to Notion sync worker",
+  "main": "src/worker.js",
+  "scripts": {
+    "build": "wrangler build",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17",
+    "@cloudflare/workers-types": "^4.20230404.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
