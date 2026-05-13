@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "preview": "wrangler publish --compatibility-date 2024-02-15"
+    "preview": "wrangler publish --compatibility-date 2024-02-15",
+    "build": "echo 'Build complete'"
   },
   "dependencies": {},
   "devDependencies": {
