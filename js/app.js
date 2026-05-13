@@ -162,6 +162,8 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
           setSaveIndicator("saved");
           setTimeout(() => setSaveIndicator(""), 1800);
+          // Auto-sync to Notion
+          syncNotesWithNotion();
         } catch (e) {}
       }, 600);
     }
@@ -428,155 +430,39 @@
       renderNotes();
     }
 
-    // NOTION SYNC CONFIG
-    const NOTION_CONFIG = {
-      databaseId: "35929f4c08ff803a8b90f8aa48b4447a",
-      dataSourceId: "35929f4c-08ff-8016-be10-000bb394681b",
-      apiEndpoint: "https://voicenote-bgd.pages.dev/notion-sync" // Cloudflare backend endpoint
-    };
-
-    async function exportNotesToNotion() {
+    // ═══════════════════════════════════════════════════════════
+    // NOTION SYNC - Correct property mapping
+    // ═══════════════════════════════════════════════════════════
+    
+    async function syncNotesWithNotion() {
+      if (!notes || notes.length === 0) return;
+      
       try {
-        showStatus("📤 Syncing notes to Notion...");
-        
-        const notesToSync = notes.map(note => ({
-          "File Name": note.title || "Untitled",
-          "File Type": "Audio", // Notes from voice are audio type
-          "File Size": (note.content?.length || 0).toString(),
-          "Status": "Active",
-          "Upload Date": note.date ? new Date(note.date).toISOString() : new Date().toISOString(),
-          "userDefined:URL": "",
-          content: note.content || "",
-          tags: note.tags?.join(", ") || "",
-          colorIdx: note.colorIdx || 0
+        // Map notes to Notion database properties
+        const notesForNotion = notes.map(note => ({
+          "Name": note.title || "Untitled",        // ✅ Correct: "Name" (not "Title")
+          "NoteID": String(note.id),                // ✅ Correct: "NoteID" property
+          "Content": note.content || "",           // ✅ Correct: "Content"
+          "Color": NOTE_COLORS[note.colorIdx]?.label || "Blue",  // ✅ Color label
+          "Tags": note.tags.join(", "),            // ✅ Correct: "Tags"
+          "Created": new Date(note.date).toISOString()  // ✅ Correct: "Created" property
         }));
 
-        // Check if backend is available
-        if (typeof fetch !== 'undefined') {
-          const response = await fetch(NOTION_CONFIG.apiEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              action: 'export',
-              notes: notesToSync,
-              databaseId: NOTION_CONFIG.databaseId
-            })
-          });
-
-          if (response.ok) {
-            showStatus("✅ Notes synced to Notion! Check your database.");
-          } else {
-            // Fallback: Download as JSON for manual import
-            downloadNotesAsJSON();
-            showStatus("⚠️ Backend unavailable. Downloaded as JSON. See instructions.");
-          }
-        } else {
-          downloadNotesAsJSON();
-        }
-      } catch (err) {
-        console.error("Export error:", err);
-        downloadNotesAsJSON();
-        showStatus("⚠️ Notion sync unavailable. Downloaded as JSON instead.");
-      }
-    }
-
-    async function importNotesFromNotion() {
-      try {
-        showStatus("📥 Loading notes from Notion...");
-        
-        const response = await fetch(NOTION_CONFIG.apiEndpoint, {
+        // Send to Cloudflare Worker
+        const response = await fetch('https://voicenote-worker.futuresuccess105.workers.dev/sync/push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            action: 'import',
-            databaseId: NOTION_CONFIG.databaseId
-          })
+          body: JSON.stringify(notesForNotion)
         });
 
         if (response.ok) {
-          const data = await response.json();
-          const importedNotes = data.notes.map((item, idx) => ({
-            id: Date.now() + idx,
-            title: item["File Name"] || "Untitled",
-            content: item.content || item["File Size"] || "",
-            date: item["Upload Date"] ? new Date(item["Upload Date"]) : new Date(),
-            colorIdx: item.colorIdx || 0,
-            tags: item.tags ? item.tags.split(", ").filter(t => t) : []
-          }));
-
-          notes = importedNotes;
-          persistNotes();
-          renderNotes();
-          showStatus(`✅ Imported ${importedNotes.length} notes from Notion!`);
+          console.log('✅ Notes synced to Notion');
         } else {
-          showStatus("❌ Could not load from Notion. Please check your connection.");
+          console.warn('⚠️ Sync response:', response.status);
         }
-      } catch (err) {
-        console.error("Import error:", err);
-        showStatus("❌ Notion import failed. Manual import unavailable.");
+      } catch (error) {
+        console.error('Notion sync error:', error);
       }
-    }
-
-    function downloadNotesAsJSON() {
-      const dataStr = JSON.stringify(notes, null, 2);
-      const dataBlob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement("a");
-      const now = new Date();
-      const dateStr = now.toISOString().split("T")[0];
-      link.href = url;
-      link.download = `voicenotes-backup-${dateStr}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function exportNotes() {
-      // Show options to export to Notion or as JSON
-      const choice = confirm("Export to Notion (OK) or Download as JSON (Cancel)?");
-      if (choice) {
-        exportNotesToNotion();
-      } else {
-        downloadNotesAsJSON();
-        showStatus("📥 Notes exported as JSON!");
-      }
-    }
-
-    function importNotes() {
-      // Show options to import from Notion or JSON file
-      const choice = confirm("Import from Notion (OK) or Upload JSON file (Cancel)?");
-      if (choice) {
-        importNotesFromNotion();
-      } else {
-        importFromJSON();
-      }
-    }
-
-    function importFromJSON() {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".json";
-      input.onchange = (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const imported = JSON.parse(event.target?.result);
-            if (Array.isArray(imported)) {
-              notes = imported;
-              persistNotes();
-              renderNotes();
-              showStatus("📤 Notes imported from JSON!");
-            } else {
-              showStatus("❌ Invalid backup file");
-            }
-          } catch (err) {
-            showStatus("❌ Error importing file");
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
     }
 
     // Extract only new words not already in transcript
