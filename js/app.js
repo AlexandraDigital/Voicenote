@@ -998,7 +998,7 @@
 
         // Get the current page's origin to construct the API endpoint
         const baseUrl = window.location.origin;
-        const endpoint = baseUrl + '/api/sync'; // Cloudflare Worker endpoint
+        const endpoint = baseUrl + '/sync'; // Cloudflare Worker endpoint
 
         const response = await fetch(endpoint, {
           method: 'POST',
