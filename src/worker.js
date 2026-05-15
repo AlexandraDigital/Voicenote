@@ -39,7 +39,7 @@ export default {
 
       // Sync to Notion endpoint
       if (path === '/sync' && request.method === 'POST') {
-        return await syncToNotion(env, corsHeaders);
+        return await syncToNotion(request, env, corsHeaders);
       }
 
       return new Response(JSON.stringify({ error: 'Not Found' }), { 
@@ -166,8 +166,11 @@ async function deleteNote(noteId, env, corsHeaders) {
 }
 
 // Sync all notes to Notion
-async function syncToNotion(env, corsHeaders) {
+async function syncToNotion(request, env, corsHeaders) {
   try {
+    // Parse request body to get notes from the frontend
+    const { notes } = await request.json();
+    
     // Check for required env variables
     if (!env.NOTION_API_KEY || !env.NOTION_DATABASE_ID) {
       return new Response(
@@ -179,17 +182,23 @@ async function syncToNotion(env, corsHeaders) {
       );
     }
 
-    // Get all notes from KV
-    const keys = await env.NOTES_KV.list();
+    if (!notes || notes.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, synced: 0, message: 'No notes to sync' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const syncResults = {
       synced: 0,
       failed: 0,
       errors: []
     };
 
-    for (const key of keys.keys) {
+    for (const note of notes) {
       try {
-        const note = await env.NOTES_KV.get(key.name, 'json');
         if (!note) continue;
 
         // Create/update page in Notion
@@ -224,15 +233,15 @@ async function syncToNotion(env, corsHeaders) {
         } else {
           syncResults.failed++;
           const errorData = await notionResponse.text();
-          syncResults.errors.push(`Note ${key.name}: ${errorData}`);
+          syncResults.errors.push(`Note "${note.title || 'Untitled'}": ${errorData}`);
         }
       } catch (error) {
         syncResults.failed++;
-        syncResults.errors.push(`Note ${key.name}: ${error.message}`);
+        syncResults.errors.push(`Note "${note.title || 'Untitled'}": ${error.message}`);
       }
     }
 
-    return new Response(JSON.stringify(syncResults), {
+    return new Response(JSON.stringify({ success: true, ...syncResults }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error) {
