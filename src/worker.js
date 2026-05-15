@@ -32,12 +32,12 @@ function corsHeaders(request) {
   const origin = request?.headers?.get('Origin') || '';
 
   const allowed =
-    !origin ||                                      // non-browser / curl
+    !origin ||
     origin.endsWith('.pages.dev') ||
     origin.endsWith('.workers.dev') ||
-    origin.startsWith('http://localhost') ||        // any localhost port
-    origin.startsWith('http://127.0.0.1') ||        // 127.x.x.x variants
-    origin === 'https://voicenote-bgd.pages.dev';   // explicit production
+    origin.startsWith('http://localhost') ||
+    origin.startsWith('http://127.0.0.1') ||
+    origin === 'https://voicenote-bgd.pages.dev';
 
   return {
     'Access-Control-Allow-Origin': allowed ? (origin || '*') : 'https://voicenote-bgd.pages.dev',
@@ -206,8 +206,6 @@ function noteToNotionBody(note, databaseId) {
       Content: { rich_text: [{ text: { content: (note.content || '').slice(0, 2000) } }] },
       Color: { rich_text: [{ text: { content: note.color || '#fff7ed' } }] },
       Tags: { multi_select: (note.tags || []).map(t => ({ name: t })) },
-      NoteID: { rich_text: [{ text: { content: String(note.id) } }] },
-      Created: { date: { start: note.created || new Date().toISOString() } },
     },
   };
 }
