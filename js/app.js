@@ -50,7 +50,7 @@
 
     // ── FIX 1: single source of truth for the worker URL ──────────────────────
     // Replace this with your actual Cloudflare Worker URL from the dashboard.
-    const WORKER_URL = "https://voicenote-worker.YOUR-SUBDOMAIN.workers.dev";
+    const WORKER_URL = "https://voicenote-worker.futuresuccess105.workers.dev";
     // ─────────────────────────────────────────────────────────────────────────
 
     const DEFAULT_NOTES = [
