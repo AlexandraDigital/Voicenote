@@ -5,9 +5,9 @@
   "description": "Notion ↔ Cloudflare sync for mobile notes app",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "wrangler build",
     "deploy": "wrangler deploy",
-    "preview": "wrangler publish --compatibility-date 2024-02-15",
-    "build": "echo 'Build complete'"
+    "preview": "wrangler publish --compatibility-date 2024-02-15"
   },
   "dependencies": {},
   "devDependencies": {
