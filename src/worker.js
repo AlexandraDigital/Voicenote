@@ -32,7 +32,12 @@ export default {
 
 async function syncNotesToNotion(request, env) {
   const notionToken = env.NOTION_API_KEY;
-  const databaseId = env.NOTION_DATABASE_ID;
+  let databaseId = env.NOTION_DATABASE_ID;
+  
+  // ── Format database ID with dashes for Notion API ───────────────────────
+  if (databaseId && databaseId.length === 32) {
+    databaseId = `${databaseId.slice(0, 8)}-${databaseId.slice(8, 12)}-${databaseId.slice(12, 16)}-${databaseId.slice(16, 20)}-${databaseId.slice(20)}`;
+  }
 
   // ── FIX: tags are now an array from the app, map them correctly ──────────
   const notes = await request.json();
@@ -79,7 +84,12 @@ async function syncNotesToNotion(request, env) {
 
 async function getNotesFromNotion(env) {
   const notionToken = env.NOTION_API_KEY;
-  const databaseId = env.NOTION_DATABASE_ID;
+  let databaseId = env.NOTION_DATABASE_ID;
+  
+  // ── Format database ID with dashes for Notion API ───────────────────────
+  if (databaseId && databaseId.length === 32) {
+    databaseId = `${databaseId.slice(0, 8)}-${databaseId.slice(8, 12)}-${databaseId.slice(12, 16)}-${databaseId.slice(16, 20)}-${databaseId.slice(20)}`;
+  }
 
   try {
     const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
