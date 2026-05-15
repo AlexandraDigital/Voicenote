@@ -203,16 +203,16 @@ async function syncToNotion(env, corsHeaders) {
           body: JSON.stringify({
             parent: { database_id: env.NOTION_DATABASE_ID },
             properties: {
-              'title': {
+              'TITLE': {
                 title: [{ text: { content: note.title || 'Untitled' } }]
               },
-              'content': {
+              'CONTENT': {
                 rich_text: [{ text: { content: note.content || '' } }]
               },
-              'color': {
+              'COLOR': {
                 rich_text: [{ text: { content: note.color || '#FFE5B4' } }]
               },
-              'tags': {
+              'TAGS': {
                 multi_select: (note.tags || []).map(tag => ({ name: tag }))
               }
             }
