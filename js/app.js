@@ -50,7 +50,7 @@
 
     // ── FIX 1: single source of truth for the worker URL ──────────────────────
     // Replace this with your actual Cloudflare Worker URL from the dashboard.
-    const WORKER_URL = "https://voicenote-worker.futuresuccess105.workers.dev";
+    const WORKER_URL = "https://webhooks.tasklet.ai/v1/public/webhook/a_s98afnc5arbvdybkc9z6?token=2bf2d0f7c178ce6ee4a25e291d67f67b";
     // ─────────────────────────────────────────────────────────────────────────
 
     const DEFAULT_NOTES = [
