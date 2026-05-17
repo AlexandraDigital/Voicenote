@@ -48,10 +48,8 @@
     const STORAGE_KEY = "voicenotes_notes";
     const DRAFT_KEY = "voicenotes_draft";
 
-    // ── CLOUDFLARE WORKER CONFIG ────────────────────────────────────────────
-    // Using Cloudflare Worker for Notion sync
+    // ── CLOUDFLARE WORKER CONFIG ─────────────────────────────────────────────
     const WORKER_URL = "https://voicenote-worker.futuresuccess105.workers.dev";
-    console.log('✅ Cloudflare Worker configured:', WORKER_URL);
     // ────────────────────────────────────────────────────────────────────────
 
     const DEFAULT_NOTES = [
@@ -430,11 +428,10 @@
       renderNotes();
     }
 
-    // ── FIX 2: alias so the menu button's onclick="syncWithNotion()" works ───
+    // Alias for menu button onclick
     function syncWithNotion() {
       syncNotesWithNotion(false);
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
     function downloadNotesAsJSON() {
       const dataStr = JSON.stringify(notes, null, 2);
@@ -468,41 +465,53 @@
       }
     }
 
+    // ── FIX: calls /import endpoint and reads data.notes ────────────────────
     async function importNotesFromNotion() {
       try {
-        showStatus("📥 Loading notes from Notion...");
+        showStatus("📥 Loading notes from Notion...", 5000);
 
-        const response = await fetch("https://voicenote-worker.futuresuccess105.workers.dev/import", {
+        const response = await fetch(`${WORKER_URL}/import`, {
           method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || `Status ${response.status}`);
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error('Worker returned non-JSON response. Check worker deployment.');
         }
 
-        const data = await response.json();
-        const importedNotes = (data.notes || []).map((page, idx) => {
-          return {
-            id: Date.now() + idx,
-            title: page.title || "Untitled",
-            content: page.content || "",
-            date: new Date(page.date || Date.now()),
-            colorIdx: page.colorIdx || 2,
-            tags: page.tags || [],
-            notionPageId: page.notionPageId,
-          };
-        });
+        if (!response.ok) {
+          throw new Error(data.error || `Worker error ${response.status}`);
+        }
+
+        // Worker returns { notes: [...] }
+        const rawNotes = data.notes;
+        if (!Array.isArray(rawNotes)) {
+          throw new Error('Unexpected response format from worker');
+        }
+
+        const importedNotes = rawNotes.map((page, idx) => ({
+          id: Date.now() + idx,
+          title:        page.title    || 'Untitled',
+          content:      page.content  || '',
+          date:         new Date(page.date || Date.now()),
+          colorIdx:     typeof page.colorIdx === 'number' ? page.colorIdx : 2,
+          tags:         Array.isArray(page.tags) ? page.tags : [],
+          notionPageId: page.notionPageId || null,
+        }));
 
         notes = importedNotes;
         persistNotes();
         renderNotes();
-        showStatus(`✅ Imported ${importedNotes.length} notes from Notion!`);
+        showStatus(`✅ Imported ${importedNotes.length} note${importedNotes.length !== 1 ? 's' : ''} from Notion!`);
       } catch (err) {
         console.error("Import error:", err);
-        showStatus("❌ Notion import failed: " + err.message, 4000);
+        showStatus("❌ Import failed: " + err.message, 5000);
       }
     }
+    // ────────────────────────────────────────────────────────────────────────
 
     function importFromJSON() {
       const input = document.createElement("input");
@@ -849,7 +858,7 @@
       return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Notion Sync
+    // ── Notion Sync ───────────────────────────────────────────────────────────
     let lastSyncTime = 0;
     const SYNC_DEBOUNCE = 5000;
     let syncInProgress = false;
@@ -861,6 +870,8 @@
       await syncNotesWithNotion(true);
     }
 
+    // ── FIX: send in-memory `notes` array (not from localStorage), use correct
+    //         body shape { notes: [] }, and read result.message from worker ──
     async function syncNotesWithNotion(silent = false) {
       if (syncInProgress) {
         if (!silent) showStatus("⏳ Sync already in progress...", 2000);
@@ -871,32 +882,38 @@
       try {
         if (!silent) showStatus("🔄 Syncing to Notion...", 2000);
 
-        const allNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        if (allNotes.length === 0) {
+        if (notes.length === 0) {
           if (!silent) showStatus("📝 No notes to sync", 2000);
-          syncInProgress = false;
           return;
         }
 
-        const response = await fetch("https://voicenote-worker.futuresuccess105.workers.dev/sync", {
+        const response = await fetch(`${WORKER_URL}/sync`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ notes: allNotes }),
+          headers: { 'Content-Type': 'application/json' },
+          // Worker expects { notes: [...] }
+          body: JSON.stringify({ notes }),
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || `Status ${response.status}`);
+        let result;
+        try {
+          result = await response.json();
+        } catch {
+          throw new Error('Worker returned non-JSON. Check that the worker is deployed.');
         }
 
-        const result = await response.json();
-        if (!silent) showStatus(`✅ ${result.message || 'Synced to Notion!'}`, 3000);
+        if (!response.ok) {
+          throw new Error(result.error || `Worker error ${response.status}`);
+        }
+
+        if (!silent) {
+          // result.message comes from the worker e.g. "Synced 5 notes to Notion!"
+          showStatus(`✅ ${result.message || 'Synced to Notion!'}`, 3000);
+        }
       } catch (error) {
         console.error('Notion sync error:', error);
-        if (!silent) showStatus(`❌ Sync failed: ${error.message}`, 4000);
+        if (!silent) showStatus(`❌ Sync failed: ${error.message}`, 5000);
       } finally {
         syncInProgress = false;
       }
     }
+    // ────────────────────────────────────────────────────────────────────────
