@@ -48,11 +48,10 @@
     const STORAGE_KEY = "voicenotes_notes";
     const DRAFT_KEY = "voicenotes_draft";
 
-    // ── NOTION API CONFIG ───────────────────────────────────────────────────
-    // Get these from your environment variables in Cloudflare Pages
-    const NOTION_API_KEY = import.meta.env.NOTION_API_KEY || process.env.NOTION_API_KEY || localStorage.getItem('notion_api_key') || '';
-    const NOTION_DATABASE_ID = import.meta.env.NOTION_DATABASE_ID || process.env.NOTION_DATABASE_ID || 'bf6d258c8740411b98688d5f32e5a80d';
-    const NOTION_API_URL = "https://api.notion.com/v1";
+    // ── CLOUDFLARE WORKER CONFIG ────────────────────────────────────────────
+    // Using Cloudflare Worker for Notion sync
+    const WORKER_URL = "https://voicenote-worker.futuresuccess105.workers.dev";
+    console.log('✅ Cloudflare Worker configured:', WORKER_URL);
     // ────────────────────────────────────────────────────────────────────────
 
     const DEFAULT_NOTES = [
@@ -471,47 +470,27 @@
 
     async function importNotesFromNotion() {
       try {
-        if (!NOTION_API_KEY) {
-          showStatus("❌ Notion API key not configured. Check your environment variables.", 4000);
-          return;
-        }
-        
         showStatus("📥 Loading notes from Notion...");
 
-        const response = await fetch(`${NOTION_API_URL}/databases/${NOTION_DATABASE_ID.replace(/-/g, '')}/query`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${NOTION_API_KEY}`,
-            'Notion-Version': '2022-06-28',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ page_size: 100 }),
+        const response = await fetch("https://voicenote-worker.futuresuccess105.workers.dev/import", {
+          method: 'GET',
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.message || `Status ${response.status}`);
+          throw new Error(error.error || `Status ${response.status}`);
         }
 
         const data = await response.json();
-        const importedNotes = (data.results || []).map((page, idx) => {
-          const props = page.properties || {};
-          const title = props.Title?.title?.[0]?.plain_text || "Untitled";
-          const content = props.Content?.rich_text?.[0]?.plain_text || props.Content?.rich_text?.map(b => b.plain_text).join("") || "";
-          const tagsRaw = props.Tags?.multi_select || [];
-          const colorRaw = props.Color?.select?.name || "Blue";
-          
-          const colorIdx = NOTE_COLORS.findIndex(c => c.label.toLowerCase() === colorRaw.toLowerCase());
-          const tags = tagsRaw.map(t => t.name);
-
+        const importedNotes = (data.notes || []).map((page, idx) => {
           return {
             id: Date.now() + idx,
-            title: title,
-            content: content,
-            date: new Date(page.created_time),
-            colorIdx: colorIdx >= 0 ? colorIdx : 2,
-            tags: tags,
-            notionPageId: page.id, // Store for future updates
+            title: page.title || "Untitled",
+            content: page.content || "",
+            date: new Date(page.date || Date.now()),
+            colorIdx: page.colorIdx || 2,
+            tags: page.tags || [],
+            notionPageId: page.notionPageId,
           };
         });
 
@@ -890,12 +869,6 @@
 
       syncInProgress = true;
       try {
-        if (!NOTION_API_KEY) {
-          showStatus("❌ Notion API key not configured. Check your environment variables.", 4000);
-          syncInProgress = false;
-          return;
-        }
-
         if (!silent) showStatus("🔄 Syncing to Notion...", 2000);
 
         const allNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -905,60 +878,21 @@
           return;
         }
 
-        let successCount = 0;
-        let failCount = 0;
+        const response = await fetch("https://voicenote-worker.futuresuccess105.workers.dev/sync", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ notes: allNotes }),
+        });
 
-        // Sync each note to Notion
-        for (const note of allNotes) {
-          try {
-            const notionPageData = {
-              parent: { database_id: NOTION_DATABASE_ID.replace(/-/g, '') },
-              properties: {
-                Title: {
-                  title: [{ text: { content: note.title || "Untitled" } }]
-                },
-                Content: {
-                  rich_text: [{ text: { content: note.content || "" } }]
-                },
-                Tags: {
-                  multi_select: (Array.isArray(note.tags) ? note.tags : [])
-                    .map(tag => ({ name: String(tag).slice(0, 100) }))
-                },
-                Color: {
-                  select: { name: NOTE_COLORS[note.colorIdx || 0]?.label || "Blue" }
-                }
-              }
-            };
-
-            const response = await fetch(`${NOTION_API_URL}/pages`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${NOTION_API_KEY}`,
-                'Notion-Version': '2022-06-28',
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(notionPageData),
-            });
-
-            if (response.ok) {
-              successCount++;
-            } else {
-              const error = await response.json();
-              console.error(`Failed to sync note "${note.title}":`, error);
-              failCount++;
-            }
-          } catch (err) {
-            console.error(`Error syncing note "${note.title}":`, err);
-            failCount++;
-          }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || `Status ${response.status}`);
         }
 
-        if (successCount > 0) {
-          if (!silent) showStatus(`✅ Synced ${successCount} note${successCount !== 1 ? 's' : ''} to Notion!`, 3000);
-        }
-        if (failCount > 0) {
-          if (!silent) showStatus(`⚠️ ${failCount} note${failCount !== 1 ? 's' : ''} failed to sync`, 4000);
-        }
+        const result = await response.json();
+        if (!silent) showStatus(`✅ ${result.message || 'Synced to Notion!'}`, 3000);
       } catch (error) {
         console.error('Notion sync error:', error);
         if (!silent) showStatus(`❌ Sync failed: ${error.message}`, 4000);
