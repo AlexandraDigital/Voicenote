@@ -48,10 +48,12 @@
     const STORAGE_KEY = "voicenotes_notes";
     const DRAFT_KEY = "voicenotes_draft";
 
-    // ── FIX 1: single source of truth for the worker URL ──────────────────────
-    // Replace this with your actual Cloudflare Worker URL from the dashboard.
-    const WORKER_URL = "https://voicenote-worker.futuresuccess105.workers.dev";
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── NOTION API CONFIG ───────────────────────────────────────────────────
+    // Get these from your environment variables in Cloudflare Pages
+    const NOTION_API_KEY = import.meta.env.VITE_NOTION_API_KEY || process.env.VITE_NOTION_API_KEY || localStorage.getItem('notion_api_key') || '';
+    const NOTION_DATABASE_ID = import.meta.env.VITE_NOTION_DATABASE_ID || process.env.VITE_NOTION_DATABASE_ID || 'bf6d258c8740411b98688d5f32e5a80d';
+    const NOTION_API_URL = "https://api.notion.com/v1";
+    // ────────────────────────────────────────────────────────────────────────
 
     const DEFAULT_NOTES = [
       {
@@ -469,29 +471,47 @@
 
     async function importNotesFromNotion() {
       try {
+        if (!NOTION_API_KEY) {
+          showStatus("❌ Notion API key not configured. Check your environment variables.", 4000);
+          return;
+        }
+        
         showStatus("📥 Loading notes from Notion...");
 
-        // ── FIX 3: use the single WORKER_URL constant ─────────────────────
-        const response = await fetch(WORKER_URL + '/sync', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(`${NOTION_API_URL}/databases/${NOTION_DATABASE_ID.replace(/-/g, '')}/query`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${NOTION_API_KEY}`,
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ page_size: 100 }),
         });
-        // ──────────────────────────────────────────────────────────────────
 
-        if (!response.ok) throw new Error(`Status ${response.status}`);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || `Status ${response.status}`);
+        }
 
         const data = await response.json();
-        const importedNotes = data.map((item, idx) => {
-          const colorIdx = NOTE_COLORS.findIndex(c => c.label.toLowerCase() === (item.color || '').toLowerCase());
+        const importedNotes = (data.results || []).map((page, idx) => {
+          const props = page.properties || {};
+          const title = props.Title?.title?.[0]?.plain_text || "Untitled";
+          const content = props.Content?.rich_text?.[0]?.plain_text || props.Content?.rich_text?.map(b => b.plain_text).join("") || "";
+          const tagsRaw = props.Tags?.multi_select || [];
+          const colorRaw = props.Color?.select?.name || "Blue";
+          
+          const colorIdx = NOTE_COLORS.findIndex(c => c.label.toLowerCase() === colorRaw.toLowerCase());
+          const tags = tagsRaw.map(t => t.name);
+
           return {
             id: Date.now() + idx,
-            title: item.title || "Untitled",
-            content: item.content || "",
-            date: new Date(),
-            colorIdx: colorIdx >= 0 ? colorIdx : 0,
-            // ── FIX 4: worker already returns tags as an array ────────────
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            // ────────────────────────────────────────────────────────────
+            title: title,
+            content: content,
+            date: new Date(page.created_time),
+            colorIdx: colorIdx >= 0 ? colorIdx : 2,
+            tags: tags,
+            notionPageId: page.id, // Store for future updates
           };
         });
 
@@ -870,6 +890,12 @@
 
       syncInProgress = true;
       try {
+        if (!NOTION_API_KEY) {
+          showStatus("❌ Notion API key not configured. Check your environment variables.", 4000);
+          syncInProgress = false;
+          return;
+        }
+
         if (!silent) showStatus("🔄 Syncing to Notion...", 2000);
 
         const allNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -879,31 +905,59 @@
           return;
         }
 
-        // ── FIX 5: tags sent as array (matches what the worker expects) ───
-        const notesToSync = allNotes.map(note => ({
-          title: note.title || "Untitled",
-          content: note.content || "",
-          color: NOTE_COLORS[note.colorIdx || 0].label,
-          tags: Array.isArray(note.tags) ? note.tags : [],
-        }));
-        // ──────────────────────────────────────────────────────────────────
+        let successCount = 0;
+        let failCount = 0;
 
-        // ── FIX 6: use the single WORKER_URL constant ─────────────────────
-        const response = await fetch(WORKER_URL + '/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(notesToSync),
-        });
-        // ──────────────────────────────────────────────────────────────────
+        // Sync each note to Notion
+        for (const note of allNotes) {
+          try {
+            const notionPageData = {
+              parent: { database_id: NOTION_DATABASE_ID.replace(/-/g, '') },
+              properties: {
+                Title: {
+                  title: [{ text: { content: note.title || "Untitled" } }]
+                },
+                Content: {
+                  rich_text: [{ text: { content: note.content || "" } }]
+                },
+                Tags: {
+                  multi_select: (Array.isArray(note.tags) ? note.tags : [])
+                    .map(tag => ({ name: String(tag).slice(0, 100) }))
+                },
+                Color: {
+                  select: { name: NOTE_COLORS[note.colorIdx || 0]?.label || "Blue" }
+                }
+              }
+            };
 
-        if (!response.ok) throw new Error(`Sync failed with status ${response.status}`);
+            const response = await fetch(`${NOTION_API_URL}/pages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${NOTION_API_KEY}`,
+                'Notion-Version': '2022-06-28',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(notionPageData),
+            });
 
-        const result = await response.json();
-        if (result && result.length > 0) {
-          const successCount = result.filter(r => r.success).length;
+            if (response.ok) {
+              successCount++;
+            } else {
+              const error = await response.json();
+              console.error(`Failed to sync note "${note.title}":`, error);
+              failCount++;
+            }
+          } catch (err) {
+            console.error(`Error syncing note "${note.title}":`, err);
+            failCount++;
+          }
+        }
+
+        if (successCount > 0) {
           if (!silent) showStatus(`✅ Synced ${successCount} note${successCount !== 1 ? 's' : ''} to Notion!`, 3000);
-        } else {
-          throw new Error('No sync results returned');
+        }
+        if (failCount > 0) {
+          if (!silent) showStatus(`⚠️ ${failCount} note${failCount !== 1 ? 's' : ''} failed to sync`, 4000);
         }
       } catch (error) {
         console.error('Notion sync error:', error);
