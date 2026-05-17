@@ -50,8 +50,8 @@
 
     // ── NOTION API CONFIG ───────────────────────────────────────────────────
     // Get these from your environment variables in Cloudflare Pages
-    const NOTION_API_KEY = import.meta.env.VITE_NOTION_API_KEY || process.env.VITE_NOTION_API_KEY || localStorage.getItem('notion_api_key') || '';
-    const NOTION_DATABASE_ID = import.meta.env.VITE_NOTION_DATABASE_ID || process.env.VITE_NOTION_DATABASE_ID || 'bf6d258c8740411b98688d5f32e5a80d';
+    const NOTION_API_KEY = import.meta.env.NOTION_API_KEY || process.env.NOTION_API_KEY || localStorage.getItem('notion_api_key') || '';
+    const NOTION_DATABASE_ID = import.meta.env.NOTION_DATABASE_ID || process.env.NOTION_DATABASE_ID || 'bf6d258c8740411b98688d5f32e5a80d';
     const NOTION_API_URL = "https://api.notion.com/v1";
     // ────────────────────────────────────────────────────────────────────────
 
